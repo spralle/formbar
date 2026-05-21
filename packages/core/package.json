@@ -1,0 +1,47 @@
+{
+  "name": "@formbar/core",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Headless form state engine with validation, transforms, and middleware",
+  "license": "MIT",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./path": {
+      "types": "./dist/path.entry.d.ts",
+      "import": "./dist/path.entry.js",
+      "require": "./dist/path.entry.cjs"
+    },
+    "./transforms": {
+      "types": "./dist/transforms.entry.d.ts",
+      "import": "./dist/transforms.entry.js",
+      "require": "./dist/transforms.entry.cjs"
+    },
+    "./validation": {
+      "types": "./dist/validation.entry.d.ts",
+      "import": "./dist/validation.entry.js",
+      "require": "./dist/validation.entry.cjs"
+    }
+  },
+  "files": ["dist", "src"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc --noEmit",
+    "build:dist": "tsup",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@ghost-shell/arbiter": ">=0.1.0",
+    "@ghost-shell/predicate": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@ghost-shell/arbiter": { "optional": true },
+    "@ghost-shell/predicate": { "optional": true }
+  }
+}
