@@ -30,5 +30,8 @@
   },
   "peerDependenciesMeta": {
     "zod": { "optional": true }
+  },
+  "devDependencies": {
+    "zod": "^4.0.0"
   }
 }

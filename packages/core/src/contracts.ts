@@ -1,4 +1,4 @@
-import type { EvaluationScope, ExpressionDefinition, ExprNode } from "@ghost-shell/predicate";
+import type { EvaluationScope, ExpressionDefinition, ExprNode } from "kuery";
 import type { CanonicalPath } from "./path.js";
 import type { StandardSchemaLike } from "./standard-schema.js";
 import type { FormState, SubmitContext, ValidationIssue } from "./state.js";
@@ -6,7 +6,7 @@ import type { TransformDefinition } from "./transforms.js";
 import type { ArrayElement, DeepKeys, DeepValue } from "./type-utils.js";
 
 // Re-export arbiter types for consumers
-export type { ProductionRule, RuleSession, SessionConfig as ArbiterSessionConfig } from "@ghost-shell/arbiter";
+export type { ProductionRule, RuleSession, SessionConfig as ArbiterSessionConfig } from "@arbitre/core";
 export type { EvaluationScope, ExpressionDefinition, ExprNode };
 
 /**

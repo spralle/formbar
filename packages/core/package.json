@@ -37,11 +37,16 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@ghost-shell/arbiter": ">=0.1.0",
-    "@ghost-shell/predicate": ">=0.1.0"
+    "@arbitre/core": ">=0.1.0",
+    "kuery": ">=0.1.0"
   },
   "peerDependenciesMeta": {
-    "@ghost-shell/arbiter": { "optional": true },
-    "@ghost-shell/predicate": { "optional": true }
+    "@arbitre/core": { "optional": true },
+    "kuery": { "optional": true }
+  },
+  "devDependencies": {
+    "@arbitre/core": "file:../../../arbitre/packages/core",
+    "kuery": "file:../../../kuery",
+    "@formbar/from-schema": "workspace:*"
   }
 }

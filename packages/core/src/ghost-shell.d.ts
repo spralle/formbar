@@ -1,4 +1,4 @@
-declare module "@ghost-shell/arbiter" {
+declare module "@arbitre/core" {
 	export interface ProductionRule {
 		id: string;
 		conditions: unknown;
@@ -30,7 +30,7 @@ declare module "@ghost-shell/arbiter" {
 	export function createSession(config: { rules: readonly ProductionRule[]; initialState?: Record<string, unknown> }): RuleSession;
 }
 
-declare module "@ghost-shell/predicate" {
+declare module "kuery" {
 	export type EvaluationScope = Record<string, unknown>;
 	export type ExprNode = { type: string; [key: string]: unknown };
 	export interface ExpressionDefinition {
