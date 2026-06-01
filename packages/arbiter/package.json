@@ -26,14 +26,10 @@
 	},
 	"peerDependencies": {
 		"@arbitre/core": ">=0.1.0",
-		"kuery": ">=0.1.0"
-	},
-	"peerDependenciesMeta": {
-		"@arbitre/core": { "optional": true },
-		"kuery": { "optional": true }
+		"kuery": ">=2.0.0"
 	},
 	"devDependencies": {
 		"@arbitre/core": "link:@arbitre/core",
-		"kuery": "link:kuery"
+		"kuery": "^2.0.0"
 	}
 }
