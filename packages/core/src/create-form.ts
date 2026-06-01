@@ -1,8 +1,3 @@
-import {
-  type ArbiterFormAdapter,
-  createArbiterAdapter,
-  createArbiterAdapterFromSession,
-} from "./arbiter-integration.js";
 import { createAsyncValidationManager } from "./async-validation.js";
 import type {
   FieldApi,
@@ -21,6 +16,7 @@ import { disposeMiddlewares, initMiddlewares } from "./middleware-runner.js";
 import type { CanonicalPath } from "./path.js";
 import { parsePath } from "./path-parser.js";
 import { executePipeline } from "./pipeline.js";
+import type { FormPlugin, PluginFieldMeta } from "./plugin-types.js";
 import { createStandardSchemaValidator, isStandardSchemaLike } from "./standard-schema.js";
 import type { CreateFormOptions, FieldMetaEntry, FormState, ValidationIssue } from "./state.js";
 import { FormStore } from "./store.js";
@@ -98,13 +94,10 @@ export function createForm<TData, TUi>(
     return current;
   }
 
-  let arbiterAdapter: ArbiterFormAdapter | undefined;
-  if (options.arbiterSession) {
-    arbiterAdapter = createArbiterAdapterFromSession(options.arbiterSession);
-  } else if (options.arbiterRules?.length) {
-    const initialDataObj = (options.initialData ?? {}) as Readonly<Record<string, unknown>>;
-    arbiterAdapter = createArbiterAdapter(options.arbiterRules, initialDataObj);
-  }
+  // Plugin lifecycle
+  const plugins = (options.plugins ?? []) as readonly FormPlugin[];
+  const pluginDisposers: (() => void)[] = [];
+  let currentPluginFieldMeta: Readonly<Record<string, PluginFieldMeta>> = {};
 
   const fieldCache = new Map<string, FieldApi<TData, TUi, string>>();
 
@@ -160,9 +153,10 @@ export function createForm<TData, TUi>(
       store: pipelineStore,
       options: pipelineOptions,
       isSubmit: false,
-      arbiterAdapter,
+      plugins,
     });
     if (result.ok) {
+      if (result.pluginFieldMeta) currentPluginFieldMeta = result.pluginFieldMeta;
       const canonical = parsePath(rawPath);
       if (canonical.namespace === "data") {
         const pathKey = canonical.segments.join(".");
@@ -181,7 +175,7 @@ export function createForm<TData, TUi>(
       store: pipelineStore,
       options: pipelineOptions,
       isSubmit: false,
-      arbiterAdapter,
+      plugins,
     });
     const errorMsg = result.error ?? result.vetoReason;
     return errorMsg ? { ok: result.ok, error: errorMsg } : { ok: result.ok };
@@ -251,6 +245,7 @@ export function createForm<TData, TUi>(
       getIssues: (p) => getIssues(p),
       getInitialValue: () => resolveInitialValue(canonical.segments),
       getFieldMeta: (pk) => (store.getState().fieldMeta as Record<string, FieldMetaEntry>)[pk],
+      getPluginFieldMeta: (pk) => currentPluginFieldMeta[pk],
       markTouched: markFieldTouched,
       getFormSubmitted: () => store.getState().meta.submitted ?? false,
       updateFieldMeta,
@@ -281,6 +276,7 @@ export function createForm<TData, TUi>(
     fieldCache.clear();
     listeners.clear();
     asyncManager?.cancelAll();
+    for (const plugin of plugins) plugin.onReset?.();
   }
 
   // Late-bound api reference for submit handler
@@ -293,7 +289,7 @@ export function createForm<TData, TUi>(
     pipelineStore,
     pipelineOptions,
     options,
-    arbiterAdapter,
+    plugins,
     getApi: () => api,
     beforeOnSubmit: asyncManager
       ? async () => {
@@ -324,7 +320,8 @@ export function createForm<TData, TUi>(
     dispose: () => {
       submitAbortController?.abort();
       asyncManager?.cancelAll();
-      arbiterAdapter?.dispose();
+      for (const plugin of plugins) plugin.onDispose?.();
+      for (const disposer of pluginDisposers) disposer();
       disposeMiddlewares((options.middleware ?? []) as readonly Middleware[]);
       fieldCache.clear();
       store.dispose();
@@ -332,5 +329,21 @@ export function createForm<TData, TUi>(
   };
 
   initMiddlewares((options.middleware ?? []) as readonly Middleware[], { state: initialState });
+
+  // Initialize plugins
+  for (const plugin of plugins) {
+    if (!plugin.onInit) continue;
+    const pluginId = plugin.id;
+    const initCtx = {
+      getState: () => ({ data: store.getState().data as Readonly<unknown>, uiState: store.getState().uiState as Readonly<unknown> }),
+      subscribe: (listener: (state: { readonly data: Readonly<unknown>; readonly uiState: Readonly<unknown> }) => void) =>
+        store.subscribe((s) => listener({ data: s.data as Readonly<unknown>, uiState: s.uiState as Readonly<unknown> })),
+      dispatch: (a: FormAction) => { dispatch({ ...a, origin: `plugin:${pluginId}` }); },
+      initialData: initialDataSnapshot as Readonly<unknown>,
+    };
+    const disposer = plugin.onInit(initCtx);
+    if (disposer) pluginDisposers.push(disposer);
+  }
+
   return api;
 }

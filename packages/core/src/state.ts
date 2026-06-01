@@ -74,8 +74,7 @@ export interface CreateFormOptions<TData, TUi> {
   readonly validators?: readonly SchemaValidator<TData, TUi>[];
   readonly middleware?: readonly Middleware<TData, TUi>[];
   readonly transforms?: readonly TransformDefinition<TData>[];
-  readonly arbiterRules?: readonly ProductionRule[] | undefined;
-  readonly arbiterSession?: RuleSession | undefined;
+  readonly plugins?: readonly FormPlugin<TData, TUi>[];
   /** Form-level field defaults — merged below field-level overrides (tier 2 of 3) */
   readonly fieldDefaults?: Readonly<FieldConfig>;
   readonly onSubmit?: (ctx: SubmitExecutionContext<TData, TUi>) => Promise<SubmitResult>;
@@ -92,7 +91,7 @@ export interface CreateFormOptions<TData, TUi> {
   readonly asyncValidators?: readonly AsyncValidatorConfig[];
 }
 
-import type { ProductionRule, RuleSession } from "@arbitre/core";
+import type { FormPlugin } from "./plugin-types.js";
 // Imports for CreateFormOptions references
 import type {
   AsyncValidatorConfig,

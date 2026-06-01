@@ -1,5 +1,5 @@
-import { assertSafeSegment } from "kuery";
-import type { RuleWriteIntent } from "./contracts.js";
+import { assertSafeSegment } from "./safe-path.js";
+import type { PluginWrite } from "./plugin-types.js";
 import { deleteNestedValue, setNestedValue } from "./nested-utils.js";
 import type { FormState } from "./state.js";
 
@@ -11,10 +11,10 @@ export function isArbiterInternalPath(path: string): boolean {
   return ARBITER_INTERNAL_PREFIXES.some((prefix) => path.startsWith(prefix));
 }
 
-/** Apply rule writes to form state (immutable) */
+/** Apply plugin writes to form state (immutable) */
 export function applyRuleWrites(
   state: FormState<unknown, unknown>,
-  writes: readonly RuleWriteIntent[],
+  writes: readonly PluginWrite[],
 ): FormState<unknown, unknown> {
   let data = (state.data ?? {}) as Record<string, unknown>;
   let uiState = (state.uiState ?? {}) as Record<string, unknown>;

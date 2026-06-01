@@ -17,20 +17,20 @@ describe("expression-integration prototype pollution", () => {
     const state = makeState();
     expect(() =>
       applyRuleWrites(state, [{ path: "__proto__.polluted", value: true, mode: "set", ruleId: "r1" }]),
-    ).toThrow("not allowed");
+    ).toThrow("Unsafe path segment rejected");
   });
 
   it("rejects constructor in write path", () => {
     const state = makeState();
     expect(() =>
       applyRuleWrites(state, [{ path: "constructor.prototype", value: true, mode: "set", ruleId: "r1" }]),
-    ).toThrow("not allowed");
+    ).toThrow("Unsafe path segment rejected");
   });
 
   it("rejects prototype in $ui write path", () => {
     const state = makeState();
     expect(() => applyRuleWrites(state, [{ path: "$ui.prototype.x", value: true, mode: "set", ruleId: "r1" }])).toThrow(
-      "not allowed",
+      "Unsafe path segment rejected",
     );
   });
 
@@ -38,7 +38,7 @@ describe("expression-integration prototype pollution", () => {
     const state = makeState();
     expect(() =>
       applyRuleWrites(state, [{ path: "__proto__.polluted", value: undefined, mode: "delete", ruleId: "r1" }]),
-    ).toThrow("not allowed");
+    ).toThrow("Unsafe path segment rejected");
   });
 
   it("allows normal write paths", () => {

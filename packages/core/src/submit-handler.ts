@@ -1,9 +1,9 @@
-import type { ArbiterFormAdapter } from "./arbiter-integration.js";
 import type { FormAction, FormApi, Middleware, SubmitResult } from "./contracts.js";
 import { FormbarError } from "./errors.js";
 import { runNotifyHooksAsync } from "./middleware-runner.js";
 import { parsePath } from "./path-parser.js";
 import { executePipeline } from "./pipeline.js";
+import type { FormPlugin } from "./plugin-types.js";
 import type { CreateFormOptions, SubmitContext, ValidationIssue } from "./state.js";
 import type { FormStore } from "./store.js";
 import { applySubmitOutcome } from "./submit.js";
@@ -37,14 +37,15 @@ export interface SubmitHandlerDeps<TData, TUi> {
   readonly pipelineStore: FormStore<unknown, unknown>;
   readonly pipelineOptions: CreateFormOptions<unknown, unknown>;
   readonly options: CreateFormOptions<TData, TUi>;
-  readonly arbiterAdapter: ArbiterFormAdapter | undefined;
+  readonly plugins: readonly FormPlugin[];
   readonly getApi: () => FormApi<TData, TUi>;
   /** Hook called before onSubmit execution — run async validators, return merged issues */
   readonly beforeOnSubmit?: (() => Promise<readonly ValidationIssue[]>) | undefined;
 }
 
 export function createSubmitHandler<TData, TUi>(deps: SubmitHandlerDeps<TData, TUi>) {
-  const { store, pipelineStore, pipelineOptions, options, arbiterAdapter } = deps;
+  const { store, pipelineStore, pipelineOptions, options } = deps;
+  const plugins = deps.plugins;
 
   function buildSubmitContext(context: Partial<SubmitContext> | undefined, submitId: string): SubmitContext {
     const clock = deps.options.clock ?? (() => new Date().toISOString());
@@ -77,7 +78,7 @@ export function createSubmitHandler<TData, TUi>(deps: SubmitHandlerDeps<TData, T
       options: pipelineOptions,
       submitContext,
       isSubmit: true,
-      arbiterAdapter,
+      plugins,
     });
   }
 
@@ -170,6 +171,22 @@ export function createSubmitHandler<TData, TUi>(deps: SubmitHandlerDeps<TData, T
     markSubmissionRunning(submitId);
     const pipelineResult = runSubmitPipeline(submitContext);
     if (!pipelineResult.ok) return handlePipelineFailure(pipelineResult, submitId);
+
+    // Plugin beforeSubmit gating
+    if (plugins.length > 0) {
+      const pluginIssues: ValidationIssue[] = [];
+      const state = store.getState();
+      for (const plugin of plugins) {
+        if (!plugin.beforeSubmit) continue;
+        const result = plugin.beforeSubmit({ data: state.data, uiState: state.uiState });
+        if (result) pluginIssues.push(...result);
+      }
+      if (pluginIssues.length > 0) {
+        const tx = store.beginTransaction();
+        tx.mutate((draft) => ({ ...draft, issues: [...draft.issues, ...pluginIssues] }));
+        store.commitTransaction(tx);
+      }
+    }
 
     // Run async validators before checking issues
     if (deps.beforeOnSubmit) {

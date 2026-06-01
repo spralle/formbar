@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
 import { ingestSchema } from "@formbar/from-schema";
-import { compile, evaluate } from "kuery";
 import {
   createDateEgressTransform,
   createDateTransform,
@@ -118,31 +117,21 @@ describe("F1-F10: Full integration conformance", () => {
     });
   });
 
-  // --- (c) Expression-driven visibility: F3 predicate + arbiter rules ---
-  describe("(c) Expression-driven visibility — F3 predicate + arbiter rules", () => {
-    test("compile predicate, arbiter rule applies writes to form state", () => {
-      // F3: compile a predicate AST
-      const ast = compile({ country: "US" });
-      expect(ast.kind).toBe("op");
-
-      // Evaluate against scope where country = 'US'
-      const scopeUS = { country: "US", $ui: {}, $meta: {} };
-      const resultUS = evaluate(ast, scopeUS);
-      expect(resultUS).toBe(true);
-
-      // Evaluate against scope where country != 'US'
-      const scopeUK = { country: "UK", $ui: {}, $meta: {} };
-      const resultUK = evaluate(ast, scopeUK);
-      expect(resultUK).toBe(false);
-
-      // Execute via arbiter: when country=US, show state field
+  // --- (c) Expression-driven visibility via plugin ---
+  describe("(c) Expression-driven visibility — plugin writes", () => {
+    test("plugin applies writes to form state on setValue", () => {
       const form = createForm({
         initialData: { country: "US" },
-        arbiterRules: [
+        plugins: [
           {
-            name: "show-state",
-            when: { country: { $eq: "US" } },
-            then: [{ $set: { "$ui.stateVisible": true } }],
+            id: "visibility",
+            evaluate: (ctx) => {
+              const country = (ctx.data as Record<string, unknown>).country;
+              if (country === "US") {
+                return { writes: [{ path: "$ui.stateVisible", value: true, mode: "set" as const }] };
+              }
+              return { writes: [{ path: "$ui.stateVisible", value: undefined, mode: "delete" as const }] };
+            },
           },
         ],
       });

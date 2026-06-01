@@ -18,8 +18,6 @@ describe("@formbar/core public API surface", () => {
         "applyRuleWrites",
         "applySubmitOutcome",
         "clearChildFieldMeta",
-        "createArbiterAdapter",
-        "createArbiterAdapterFromSession",
         "createAsyncValidationManager",
         "createConfigurableDateEgressTransform",
         "createDateEgressTransform",

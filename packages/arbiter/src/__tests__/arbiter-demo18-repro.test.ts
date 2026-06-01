@@ -1,11 +1,12 @@
 import type { ProductionRule } from "@arbitre/core";
 import { describe, expect, test } from "vitest";
-import { createForm } from "../create-form.js";
+import { createForm } from "@formbar/core";
+import { createArbiterPlugin } from "../arbiter-plugin.js";
 
 /**
  * Reproduction test for demo 18 (arbiter visibility).
  * Uses the exact same rules and initial state as the demo component
- * to verify core logic works end-to-end through createForm.
+ * to verify core logic works end-to-end through createForm + arbiter plugin.
  */
 
 interface FormData {
@@ -42,7 +43,7 @@ function makeForm() {
   return createForm<FormData, UiState>({
     initialData: { country: "", state: "", province: "", region: "" },
     initialUiState: { showState: false, showProvince: false },
-    arbiterRules,
+    plugins: [createArbiterPlugin({ rules: arbiterRules })],
   });
 }
 
@@ -155,7 +156,6 @@ describe("demo 18 arbiter visibility — subscription", () => {
     form.setValue("country", "CA");
     form.setValue("country", "UK");
 
-    // Each setValue should trigger at least one notification
     expect(callCount).toBeGreaterThanOrEqual(3);
     form.dispose();
   });

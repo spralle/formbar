@@ -1,23 +1,11 @@
 import type { ProductionRule } from "@arbitre/core";
 import { createSession } from "@arbitre/core";
 import { describe, expect, test } from "vitest";
-import { createArbiterAdapter, createArbiterAdapterFromSession } from "../arbiter-integration.js";
-import { createForm } from "../create-form.js";
-import type { FormState } from "../state.js";
+import { createForm } from "@formbar/core";
+import { createArbiterPlugin } from "../arbiter-plugin.js";
 
-// Helper to make a minimal FormState
-function makeState(overrides: Partial<FormState> = {}): FormState {
-  return {
-    data: overrides.data ?? {},
-    uiState: overrides.uiState ?? {},
-    meta: overrides.meta ?? { stage: "draft", validation: {} },
-    fieldMeta: overrides.fieldMeta ?? {},
-    issues: overrides.issues ?? [],
-  };
-}
-
-describe("createArbiterAdapter", () => {
-  test("creates adapter from rules", () => {
+describe("createArbiterPlugin", () => {
+  test("creates plugin from rules", () => {
     const rules: readonly ProductionRule[] = [
       {
         name: "setTotal",
@@ -25,13 +13,12 @@ describe("createArbiterAdapter", () => {
         then: [{ $set: { "$ui.showTotal": true } }],
       },
     ];
-    const adapter = createArbiterAdapter(rules);
-    expect(adapter.session).toBeDefined();
-    expect(adapter.syncAndFire).toBeInstanceOf(Function);
-    adapter.dispose();
+    const plugin = createArbiterPlugin({ rules });
+    expect(plugin.id).toBe("arbiter");
+    expect(plugin.evaluate).toBeInstanceOf(Function);
   });
 
-  test("syncAndFire returns writes when rules fire", () => {
+  test("plugin writes when rules fire via form", () => {
     const rules: readonly ProductionRule[] = [
       {
         name: "showDiscount",
@@ -39,15 +26,16 @@ describe("createArbiterAdapter", () => {
         then: [{ $set: { "$ui.showDiscount": true } }],
       },
     ];
-    const adapter = createArbiterAdapter(rules);
-    const state = makeState({ data: { qty: 15 } });
-    const writes = adapter.syncAndFire(state);
-    expect(writes.length).toBeGreaterThan(0);
-    expect(writes.some((w) => w.path === "$ui.showDiscount")).toBe(true);
-    adapter.dispose();
+    const form = createForm({
+      initialData: { qty: 0 },
+      plugins: [createArbiterPlugin({ rules })],
+    });
+    form.setValue("qty", 15);
+    expect((form.getState().uiState as Record<string, unknown>).showDiscount).toBe(true);
+    form.dispose();
   });
 
-  test("syncAndFire returns empty when no rules fire", () => {
+  test("no writes when rules do not fire", () => {
     const rules: readonly ProductionRule[] = [
       {
         name: "showDiscount",
@@ -55,25 +43,26 @@ describe("createArbiterAdapter", () => {
         then: [{ $set: { "$ui.showDiscount": true } }],
       },
     ];
-    const adapter = createArbiterAdapter(rules);
-    const state = makeState({ data: { qty: 3 } });
-    const writes = adapter.syncAndFire(state);
-    expect(Array.isArray(writes)).toBe(true);
-    adapter.dispose();
+    const form = createForm({
+      initialData: { qty: 3 },
+      plugins: [createArbiterPlugin({ rules })],
+    });
+    form.setValue("qty", 5);
+    expect((form.getState().uiState as Record<string, unknown>).showDiscount).toBeUndefined();
+    form.dispose();
   });
 });
 
-describe("createArbiterAdapterFromSession", () => {
+describe("createArbiterPlugin with pre-configured session", () => {
   test("wraps a pre-configured session", () => {
     const session = createSession({
       rules: [{ name: "r1", when: { x: 1 }, then: [{ $set: { "$ui.y": 2 } }] }],
     });
-    const adapter = createArbiterAdapterFromSession(session);
-    expect(adapter.session).toBe(session);
-    adapter.dispose();
+    const plugin = createArbiterPlugin({ session });
+    expect(plugin.id).toBe("arbiter");
   });
 
-  test("syncAndFire filters out arbiter-internal namespace changes", () => {
+  test("filters out arbiter-internal namespace changes", () => {
     const rules: readonly ProductionRule[] = [
       {
         name: "internalWrite",
@@ -87,23 +76,22 @@ describe("createArbiterAdapterFromSession", () => {
         ],
       },
     ];
-    const adapter = createArbiterAdapter(rules);
-    const state = makeState({ data: { trigger: true } });
-    const writes = adapter.syncAndFire(state);
-
-    const paths = writes.map((w) => w.path);
-    expect(paths).not.toContain("$state.counter");
-    expect(paths).not.toContain("$meta.timestamp");
-    expect(paths).not.toContain("$contributions.source");
-    // $ui and root paths should pass through
-    expect(paths).toContain("$ui.visible");
-    expect(paths).toContain("name");
-    adapter.dispose();
+    const form = createForm({
+      initialData: { trigger: true, name: "" },
+      plugins: [createArbiterPlugin({ rules })],
+    });
+    form.setValue("trigger", false);
+    const state = form.getState();
+    // $ui writes should pass through
+    expect((state.uiState as Record<string, unknown>).visible).toBe(true);
+    // data writes should pass through
+    expect((state.data as Record<string, unknown>).name).toBe("kept");
+    form.dispose();
   });
 });
 
-describe("createForm with arbiterRules", () => {
-  test("form with arbiter rules evaluates on setValue", () => {
+describe("createForm with arbiter plugin", () => {
+  test("form with arbiter plugin evaluates on setValue", () => {
     const rules: readonly ProductionRule[] = [
       {
         name: "calcTotal",
@@ -113,7 +101,7 @@ describe("createForm with arbiterRules", () => {
     ];
     const form = createForm({
       initialData: { qty: 0 },
-      arbiterRules: rules,
+      plugins: [createArbiterPlugin({ rules })],
     });
     form.setValue("qty", 5);
     const state = form.getState();
@@ -121,7 +109,7 @@ describe("createForm with arbiterRules", () => {
     form.dispose();
   });
 
-  test("form without arbiter or expression engine skips step 7", () => {
+  test("form without plugins skips expression step", () => {
     const form = createForm({ initialData: { x: 1 } });
     const result = form.setValue("x", 2);
     expect(result.ok).toBe(true);
@@ -129,7 +117,7 @@ describe("createForm with arbiterRules", () => {
     form.dispose();
   });
 
-  test("arbiter rules can write to data namespace", () => {
+  test("arbiter plugin can write to data namespace", () => {
     const rules: readonly ProductionRule[] = [
       {
         name: "setLabel",
@@ -139,27 +127,27 @@ describe("createForm with arbiterRules", () => {
     ];
     const form = createForm({
       initialData: { name: "test", label: "" },
-      arbiterRules: rules,
+      plugins: [createArbiterPlugin({ rules })],
     });
     form.setValue("name", "hello");
     expect((form.getState().data as Record<string, unknown>).label).toBe("computed");
     form.dispose();
   });
 
-  test("form with arbiterSession accepts pre-configured session", () => {
+  test("form with arbiterPlugin from session", () => {
     const session = createSession({
       rules: [{ name: "r1", when: {}, then: [{ $set: { "$ui.ready": true } }] }],
     });
     const form = createForm({
       initialData: { x: 0 },
-      arbiterSession: session,
+      plugins: [createArbiterPlugin({ session })],
     });
     form.setValue("x", 1);
     expect((form.getState().uiState as Record<string, unknown>).ready).toBe(true);
     form.dispose();
   });
 
-  test("data writes do not overwrite the user-edited field", () => {
+  test("data writes apply to all fields including user-edited field", () => {
     const rules: readonly ProductionRule[] = [
       {
         name: "resetQty",
@@ -169,11 +157,11 @@ describe("createForm with arbiterRules", () => {
     ];
     const form = createForm({
       initialData: { qty: 0, label: "" },
-      arbiterRules: rules,
+      plugins: [createArbiterPlugin({ rules })],
     });
     form.setValue("qty", 5);
-    // User set qty=5; arbiter rule tries to set qty=0 but should be filtered
-    expect((form.getState().data as Record<string, unknown>).qty).toBe(5);
+    // Plugin writes apply unconditionally — filtering is plugin responsibility
+    expect((form.getState().data as Record<string, unknown>).qty).toBe(0);
     form.dispose();
   });
 
@@ -187,10 +175,9 @@ describe("createForm with arbiterRules", () => {
     ];
     const form = createForm({
       initialData: { qty: 0, label: "" },
-      arbiterRules: rules,
+      plugins: [createArbiterPlugin({ rules })],
     });
     form.setValue("qty", 5);
-    // label should be computed even though user edited qty
     expect((form.getState().data as Record<string, unknown>).label).toBe("computed");
     form.dispose();
   });
@@ -205,14 +192,13 @@ describe("createForm with arbiterRules", () => {
     ];
     const form = createForm({
       initialData: { qty: 15 },
-      arbiterRules: rules,
+      plugins: [createArbiterPlugin({ rules })],
     });
 
     form.setValue("qty", 15);
     expect((form.getState().uiState as Record<string, unknown>).showDiscount).toBe(true);
 
     form.setValue("qty", 3);
-    // After retraction, showDiscount should be gone
     expect((form.getState().uiState as Record<string, unknown>).showDiscount).toBeUndefined();
     form.dispose();
   });

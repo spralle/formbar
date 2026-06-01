@@ -119,11 +119,12 @@ describe("pipeline — 18-step engine", () => {
 
   it("expression evaluation runs in the pipeline", () => {
     const form = createForm({
-      arbiterRules: [
+      plugins: [
         {
-          name: "r1",
-          when: {},
-          then: [{ $set: { computed: 42 } }],
+          id: "test-compute",
+          evaluate: () => ({
+            writes: [{ path: "computed", value: 42, mode: "set" as const }],
+          }),
         },
       ],
       initialData: { name: "", computed: 0 },

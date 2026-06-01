@@ -1,13 +1,18 @@
-import type { EvaluationScope, ExpressionDefinition, ExprNode } from "kuery";
 import type { CanonicalPath } from "./path.js";
 import type { StandardSchemaLike } from "./standard-schema.js";
 import type { FormState, SubmitContext, ValidationIssue } from "./state.js";
 import type { TransformDefinition } from "./transforms.js";
 import type { ArrayElement, DeepKeys, DeepValue } from "./type-utils.js";
 
-// Re-export arbiter types for consumers
-export type { ProductionRule, RuleSession, SessionConfig as ArbiterSessionConfig } from "@arbitre/core";
-export type { EvaluationScope, ExpressionDefinition, ExprNode };
+// These were previously imported from "kuery" — now defined locally
+// so @formbar/core has zero external dependencies.
+export type EvaluationScope = Record<string, unknown>;
+export interface ExprNode { type: string; [key: string]: unknown; }
+export interface ExpressionDefinition {
+  expr: ExprNode;
+  scope?: EvaluationScope;
+  [key: string]: unknown;
+}
 
 /**
  * ADR section 10 — Transform is the config-time type alias.
@@ -52,13 +57,7 @@ export interface AsyncValidatorConfig<TData = unknown, TUi = unknown> {
   readonly label?: string;
 }
 
-/** ADR section 5.2 — RuleWriteIntent */
-export interface RuleWriteIntent {
-  readonly path: string;
-  readonly value: unknown;
-  readonly mode: "set" | "delete";
-  readonly ruleId: string;
-}
+
 
 /** ADR section 9 — Middleware decision for veto-capable hooks */
 export type MiddlewareDecision = { readonly action: "continue" } | { readonly action: "veto"; readonly reason: string };
@@ -172,6 +171,7 @@ export interface FormAction {
   readonly type: string;
   readonly path?: string;
   readonly value?: unknown;
+  readonly origin?: string;
 }
 
 /** ADR section 9 — FormDispatchResult */
@@ -226,6 +226,8 @@ export interface FieldApi<TData, TUi, TPath extends string> {
   isDirty(): boolean;
   isValidating(): boolean;
   markTouched(): void;
+  /** Plugin-contributed field metadata for this field */
+  pluginMeta(): import("./plugin-types.js").PluginFieldMeta | undefined;
   /** Set field value — wraps set(). Ready to bind to onChange. */
   handleChange(value: DeepValue<TData, TPath>): FormDispatchResult;
   /** Mark field as touched — wraps markTouched(). Ready to bind to onBlur. */

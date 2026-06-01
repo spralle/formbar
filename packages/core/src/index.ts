@@ -1,11 +1,16 @@
 // Path system (SE1.1)
 
-// Arbiter integration (ADR arbiter §9)
-export {
-  type ArbiterFormAdapter,
-  createArbiterAdapter,
-  createArbiterAdapterFromSession,
-} from "./arbiter-integration.js";
+// Plugin system
+export type {
+  FormPlugin,
+  PluginChangeDescriptor,
+  PluginEvaluateContext,
+  PluginEvaluateResult,
+  PluginFieldMeta,
+  PluginInitContext,
+  PluginSubmitContext,
+  PluginWrite,
+} from "./plugin-types.js";
 // Async validation
 export {
   type AsyncManagerDeps,
@@ -19,7 +24,6 @@ export type {
   AfterEvaluateContext,
   AfterSubmitContext,
   AfterValidateContext,
-  ArbiterSessionConfig,
   ArrayFieldHelpers,
   AsyncValidatorConfig,
   BeforeActionContext,
@@ -41,9 +45,6 @@ export type {
   MiddlewareDecision,
   MiddlewareInitContext,
   NotifyHookContextMap,
-  ProductionRule,
-  RuleSession,
-  RuleWriteIntent,
   SchemaValidator,
   SubmitExecutionContext,
   SubmitResult,

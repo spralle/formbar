@@ -1,7 +1,7 @@
-import { assertSafeSegment } from "kuery";
-import type { ArbiterFormAdapter } from "./arbiter-integration.js";
+import { assertSafeSegment } from "./safe-path.js";
 import type { FormAction, Middleware, ValidatorFn } from "./contracts.js";
 import { FormbarError } from "./errors.js";
+import type { FormPlugin, PluginChangeDescriptor, PluginEvaluateContext, PluginFieldMeta, PluginWrite } from "./plugin-types.js";
 import { applyRuleWrites } from "./expression-integration.js";
 import { runNotifyHooksSync, runVetoHooksSync } from "./middleware-runner.js";
 import { parsePath } from "./path-parser.js";
@@ -36,6 +36,17 @@ function setAtPath(root: unknown, segments: readonly (string | number)[], value:
   return { ...obj, [head]: setAtPath(child ?? (rest.length > 0 ? childDefault : undefined), rest, value) };
 }
 
+/** Resolve a value from a nested object by dot-path traversal */
+function getValueAtPath(root: unknown, path: string): unknown {
+  const segments = path.split(".");
+  let current: unknown = root;
+  for (const seg of segments) {
+    if (current === null || current === undefined) return undefined;
+    current = (current as Record<string, unknown>)[seg];
+  }
+  return current;
+}
+
 /** Pipeline context — everything the 18-step engine needs */
 export interface PipelineContext {
   readonly action: FormAction;
@@ -43,7 +54,7 @@ export interface PipelineContext {
   readonly options: CreateFormOptions<unknown, unknown>;
   readonly submitContext?: SubmitContext;
   readonly isSubmit: boolean;
-  readonly arbiterAdapter?: ArbiterFormAdapter | undefined;
+  readonly plugins?: readonly FormPlugin[];
 }
 
 /** Pipeline result — outcome of the 18-step execution */
@@ -53,6 +64,7 @@ export interface PipelineResult {
   readonly vetoed?: boolean;
   readonly vetoReason?: string;
   readonly issues?: readonly ValidationIssue[];
+  readonly pluginFieldMeta?: Readonly<Record<string, PluginFieldMeta>>;
 }
 
 /** Resolve TransformDefinitions from options.transforms (duck-type check) */
@@ -87,21 +99,64 @@ function runValidators(
   return allIssues;
 }
 
+/** Evaluate all plugins and return collected writes and merged fieldMeta */
+function evaluatePlugins(
+  plugins: readonly FormPlugin[],
+  action: FormAction,
+  draftState: { readonly data: unknown; readonly uiState: unknown; readonly issues: readonly ValidationIssue[] },
+  prevState: { readonly data: unknown; readonly uiState: unknown },
+): { writes: readonly PluginWrite[]; fieldMeta: Record<string, PluginFieldMeta> } {
+  const allWrites: PluginWrite[] = [];
+  const mergedFieldMeta: Record<string, PluginFieldMeta> = {};
+
+  const change: PluginChangeDescriptor = {
+    path: action.path,
+    type: action.type,
+    dataChanged: draftState.data !== prevState.data,
+    uiChanged: draftState.uiState !== prevState.uiState,
+  };
+
+  const origin: PluginEvaluateContext["origin"] =
+    action.origin?.startsWith("plugin:") ? (action.origin as `plugin:${string}`)
+    : action.type === "reset" ? "reset"
+    : action.type === "init" ? "init"
+    : "user";
+
+  const ctx: PluginEvaluateContext = {
+    action,
+    data: draftState.data as Readonly<unknown>,
+    uiState: draftState.uiState as Readonly<unknown>,
+    prevData: prevState.data as Readonly<unknown>,
+    prevUiState: prevState.uiState as Readonly<unknown>,
+    change,
+    issues: draftState.issues,
+    origin,
+    getValueAtPath: (path: string) => getValueAtPath(draftState.data, path),
+  };
+
+  for (const plugin of plugins) {
+    if (!plugin.evaluate) continue;
+    const result = plugin.evaluate(ctx);
+    if (!result) continue;
+    if (result.writes) allWrites.push(...result.writes);
+    if (result.fieldMeta) {
+      for (const [path, meta] of Object.entries(result.fieldMeta)) {
+        mergedFieldMeta[path] = mergedFieldMeta[path] ? { ...mergedFieldMeta[path], ...meta } : meta;
+      }
+    }
+  }
+
+  return { writes: allWrites, fieldMeta: mergedFieldMeta };
+}
+
 /**
  * Executes the 18-step transactional pipeline for a form action.
  * All-or-nothing semantics: partial commits never occur.
- *
- * Steps: path validation → begin TX → beforeAction veto → ingress transforms →
- * base mutation → beforeEvaluate → rule evaluation → afterEvaluate → resolve →
- * beforeValidate → validate → afterValidate → submit veto → write issues →
- * commit → notify subscribers → afterAction → (error: rollback).
- *
- * @param ctx - Pipeline context containing action, store, options, and adapters.
- * @returns Result indicating success/failure with optional issues or veto reason.
  */
 export function executePipeline(ctx: PipelineContext): PipelineResult {
   const { action, store, options, submitContext, isSubmit } = ctx;
   const middlewares = (options.middleware ?? []) as readonly Middleware[];
+  const plugins = ctx.plugins ?? [];
 
   // Step 1: Normalize input — parse/validate path
   if (action.path !== undefined) {
@@ -178,16 +233,19 @@ export function executePipeline(ctx: PipelineContext): PipelineResult {
     // Step 6: Middleware beforeEvaluate
     runNotifyHooksSync(middlewares, "beforeEvaluate", { action, state: tx.draftState });
 
-    // Step 7: Evaluate expressions and rules
-    if (ctx.arbiterAdapter) {
-      const arbiter = ctx.arbiterAdapter;
-      const actionPath = action.path;
-      tx.mutate((draft) => {
-        const writes = arbiter.syncAndFire(draft);
-        const filtered =
-          action.type === "set-value" && actionPath ? writes.filter((w) => w.path !== actionPath) : writes;
-        return filtered.length > 0 ? applyRuleWrites(draft, filtered) : draft;
-      });
+    // Step 7: Evaluate plugins
+    let pluginFieldMeta: Record<string, PluginFieldMeta> = {};
+    if (plugins.length > 0) {
+      const { writes, fieldMeta } = evaluatePlugins(
+        plugins,
+        action,
+        tx.draftState,
+        prevState,
+      );
+      pluginFieldMeta = fieldMeta;
+      if (writes.length > 0) {
+        tx.mutate((draft) => applyRuleWrites(draft, writes));
+      }
     }
 
     // Step 8: Middleware afterEvaluate
@@ -244,7 +302,7 @@ export function executePipeline(ctx: PipelineContext): PipelineResult {
     const nextState = store.getState();
     runNotifyHooksSync(middlewares, "afterAction", { action, prevState, nextState });
 
-    return { ok: true, issues };
+    return { ok: true, issues, pluginFieldMeta };
   } catch (err) {
     // Step 14: Abort gate — rollback full transaction on fatal error
     try {

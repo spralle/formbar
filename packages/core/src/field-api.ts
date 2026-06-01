@@ -2,6 +2,7 @@ import { createArrayHelpers } from "./array-helpers.js";
 import type { FieldApi, FieldConfig, FormDispatchResult } from "./contracts.js";
 import { structuredEqual } from "./equality.js";
 import type { CanonicalPath } from "./path.js";
+import type { PluginFieldMeta } from "./plugin-types.js";
 import type { FieldMetaEntry, FormState, ValidationIssue } from "./state.js";
 import { shouldShowIssues } from "./trigger-filter.js";
 import type { DeepValue } from "./type-utils.js";
@@ -24,6 +25,7 @@ export interface CreateFieldApiParams<TData, TUi> {
   readonly getIssues: (path: CanonicalPath) => readonly ValidationIssue[];
   readonly getInitialValue: () => unknown;
   readonly getFieldMeta: (pathKey: string) => FieldMetaEntry | undefined;
+  readonly getPluginFieldMeta?: (pathKey: string) => PluginFieldMeta | undefined;
   readonly markTouched: (pathKey: string) => void;
   readonly getFormSubmitted: () => boolean;
   readonly updateFieldMeta: (updater: (meta: Record<string, FieldMetaEntry>) => Record<string, FieldMetaEntry>) => void;
@@ -144,6 +146,10 @@ export function createFieldApi<TData, TUi>(params: CreateFieldApiParams<TData, T
 
     handleBlur(): void {
       this.markTouched();
+    },
+
+    pluginMeta(): PluginFieldMeta | undefined {
+      return params.getPluginFieldMeta?.(pathKey);
     },
   };
 

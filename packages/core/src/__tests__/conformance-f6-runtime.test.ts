@@ -75,14 +75,15 @@ describe("F6: Runtime algorithm conformance", () => {
     form.dispose();
   });
 
-  test("F6.04: expression evaluation — arbiter rule writes are applied", () => {
+  test("F6.04: expression evaluation — plugin writes are applied", () => {
     const form = createForm({
       initialData: { name: "", derived: "" },
-      arbiterRules: [
+      plugins: [
         {
-          name: "r1",
-          when: {},
-          then: [{ $set: { derived: "computed" } }],
+          id: "test-derive",
+          evaluate: () => ({
+            writes: [{ path: "derived", value: "computed", mode: "set" as const }],
+          }),
         },
       ],
     });
