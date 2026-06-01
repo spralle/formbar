@@ -2,6 +2,7 @@
 "@formbar/core": minor
 "@formbar/from-schema": minor
 "@formbar/react": minor
+"@formbar/react-schema": minor
 "@formbar/arbiter": minor
 ---
 
@@ -26,9 +27,11 @@ Initial 0.1.0 release of the @formbar form engine.
 @formbar/react:
 - useForm hook with reactive re-rendering
 - useField hook with scoped field state
+- Full a11y utilities (labels, descriptions, errors, focus management)
+
+@formbar/react-schema:
 - useSchemaForm for schema-driven forms
 - Renderer registry with layout tree rendering
-- Full a11y utilities (labels, descriptions, errors, focus management)
 - Field state resolution from plugin metadata
 
 @formbar/arbiter:

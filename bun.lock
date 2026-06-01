@@ -19,6 +19,7 @@
         "@formbar/core": "workspace:*",
         "@formbar/from-schema": "workspace:*",
         "@formbar/react": "workspace:*",
+        "@formbar/react-schema": "workspace:*",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
       },
@@ -75,7 +76,22 @@
       "version": "0.1.0",
       "dependencies": {
         "@formbar/core": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/react": "^19.0.0",
+        "react": "^19.0.0",
+      },
+      "peerDependencies": {
+        "react": ">=18.0.0",
+      },
+    },
+    "packages/react-schema": {
+      "name": "@formbar/react-schema",
+      "version": "0.1.0",
+      "dependencies": {
+        "@formbar/core": "workspace:*",
         "@formbar/from-schema": "workspace:*",
+        "@formbar/react": "workspace:*",
       },
       "devDependencies": {
         "@types/react": "^19.0.0",
@@ -87,7 +103,7 @@
     },
   },
   "packages": {
-    "@arbitre/core": ["@arbitre/core@link:@arbitre/core", {}],
+    "@arbitre/core": ["@arbitre/core@0.1.0", "", { "peerDependencies": { "kuery": ">=2.0.0" } }, "sha512-4LxP2Iu5wDRgo9cJd4ffLjQoUMPnehT8fuHs4rMqh7SuzwlnZt96AWDj4UFWlqPFmECS0NOhDG8fWZTaTEg5uA=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
 
@@ -242,6 +258,8 @@
     "@formbar/from-schema": ["@formbar/from-schema@workspace:packages/from-schema"],
 
     "@formbar/react": ["@formbar/react@workspace:packages/react"],
+
+    "@formbar/react-schema": ["@formbar/react-schema@workspace:packages/react-schema"],
 
     "@inquirer/external-editor": ["@inquirer/external-editor@1.0.3", "", { "dependencies": { "chardet": "^2.1.1", "iconv-lite": "^0.7.0" }, "peerDependencies": { "@types/node": ">=18" }, "optionalPeers": ["@types/node"] }, "sha512-RWbSrDiYmO4LbejWY7ttpxczuwQyZLBUyygsA9Nsv95hpzUWwnNTVQmAq3xuh7vNwCp07UTmE5i11XAEExx4RA=="],
 
@@ -734,8 +752,6 @@
     "@babel/core/semver": ["semver@6.3.1", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
 
     "@babel/helper-compilation-targets/semver": ["semver@6.3.1", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
-
-    "@formbar/arbiter/@arbitre/core": ["@arbitre/core@0.1.0", "", { "peerDependencies": { "kuery": ">=2.0.0" } }, "sha512-4LxP2Iu5wDRgo9cJd4ffLjQoUMPnehT8fuHs4rMqh7SuzwlnZt96AWDj4UFWlqPFmECS0NOhDG8fWZTaTEg5uA=="],
 
     "@manypkg/find-root/fs-extra": ["fs-extra@8.1.0", "", { "dependencies": { "graceful-fs": "^4.2.0", "jsonfile": "^4.0.0", "universalify": "^0.1.0" } }, "sha512-yhlQgA6mnOJUKOsRUFsgJdQCvkKhcz8tlZG5HBQfReYZy46OwLcY+Zia0mtdHsOo9y/hP+CxMN0TU9QxoOtG4g=="],
 

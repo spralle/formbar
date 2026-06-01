@@ -4,9 +4,7 @@ import { createSchemaForm } from "@formbar/from-schema";
 import { useMemo } from "react";
 import type { ResolvedFieldState } from "./resolve-field-state.js";
 import { pruneHiddenFields, resolveFieldStates } from "./resolve-field-state.js";
-import { useFormSelector } from "./use-form-selector.js";
-import type { UseFormOptions } from "./use-form.js";
-import { useForm } from "./use-form.js";
+import { type UseFormOptions, useForm, useFormSelector } from "@formbar/react";
 
 export interface UseSchemaFormOptions<TData, TUi> extends Omit<UseFormOptions<TData, TUi>, "validators"> {
 	readonly validators?: readonly ValidatorFn[];

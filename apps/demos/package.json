@@ -12,6 +12,7 @@
 		"@formbar/core": "workspace:*",
 		"@formbar/from-schema": "workspace:*",
 		"@formbar/react": "workspace:*",
+		"@formbar/react-schema": "workspace:*",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0"
 	},

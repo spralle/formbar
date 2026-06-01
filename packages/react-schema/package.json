@@ -1,8 +1,8 @@
 {
-	"name": "@formbar/react",
+	"name": "@formbar/react-schema",
 	"version": "0.1.0",
 	"type": "module",
-	"description": "React hooks and a11y utilities for @formbar/core",
+	"description": "Schema-driven React form rendering — layout trees, renderers, and useSchemaForm hook",
 	"license": "MIT",
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",
@@ -22,7 +22,9 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@formbar/core": "workspace:*"
+		"@formbar/core": "workspace:*",
+		"@formbar/react": "workspace:*",
+		"@formbar/from-schema": "workspace:*"
 	},
 	"peerDependencies": {
 		"react": ">=18.0.0"
