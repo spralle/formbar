@@ -2,57 +2,57 @@
 
 // Plugin system
 export type {
-  FormPlugin,
-  PluginChangeDescriptor,
-  PluginEvaluateContext,
-  PluginEvaluateResult,
-  PluginFieldMeta,
-  PluginInitContext,
-  PluginSubmitContext,
-  PluginWrite,
+	FormPlugin,
+	PluginChangeDescriptor,
+	PluginEvaluateContext,
+	PluginEvaluateResult,
+	PluginFieldMeta,
+	PluginInitContext,
+	PluginSubmitContext,
+	PluginWrite,
 } from "./plugin-types.js";
 // Async validation
 export {
-  type AsyncManagerDeps,
-  type AsyncValidationManager,
-  createAsyncValidationManager,
+	type AsyncManagerDeps,
+	type AsyncValidationManager,
+	createAsyncValidationManager,
 } from "./async-validation.js";
 // Contract types (SE1.2)
 export type {
-  ActionStateContext,
-  AfterActionContext,
-  AfterEvaluateContext,
-  AfterSubmitContext,
-  AfterValidateContext,
-  ArrayFieldHelpers,
-  AsyncValidatorConfig,
-  BeforeActionContext,
-  BeforeEvaluateContext,
-  BeforeSubmitContext,
-  BeforeValidateContext,
-  EvaluationScope,
-  ExpressionDefinition,
-  ExpressionScope,
-  ExprNode,
-  FieldApi,
-  FieldApiWithArray,
-  FieldConfig,
-  FieldValidationTriggers,
-  FormAction,
-  FormApi,
-  FormDispatchResult,
-  Middleware,
-  MiddlewareDecision,
-  MiddlewareInitContext,
-  NotifyHookContextMap,
-  SchemaValidator,
-  SubmitExecutionContext,
-  SubmitResult,
-  Transform,
-  ValidationTrigger,
-  ValidatorFn,
-  ValidatorInput,
-  VetoHookContextMap,
+	ActionStateContext,
+	AfterActionContext,
+	AfterEvaluateContext,
+	AfterSubmitContext,
+	AfterValidateContext,
+	ArrayFieldHelpers,
+	AsyncValidatorConfig,
+	BeforeActionContext,
+	BeforeEvaluateContext,
+	BeforeSubmitContext,
+	BeforeValidateContext,
+	EvaluationScope,
+	ExpressionDefinition,
+	ExpressionScope,
+	ExprNode,
+	FieldApi,
+	FieldApiWithArray,
+	FieldConfig,
+	FieldValidationTriggers,
+	FormAction,
+	FormApi,
+	FormDispatchResult,
+	Middleware,
+	MiddlewareDecision,
+	MiddlewareInitContext,
+	NotifyHookContextMap,
+	SchemaValidator,
+	SubmitExecutionContext,
+	SubmitResult,
+	Transform,
+	ValidationTrigger,
+	ValidatorFn,
+	ValidatorInput,
+	VetoHookContextMap,
 } from "./contracts.js";
 // Form factory (SE1.4)
 export { createForm } from "./create-form.js";
@@ -68,12 +68,12 @@ export { clearChildFieldMeta, shiftFieldMeta, swapFieldMeta } from "./field-meta
 export { createListenerRegistry, type ListenerEntry } from "./listener-registry.js";
 // Middleware runner (SE6.2)
 export {
-  disposeMiddlewares,
-  initMiddlewares,
-  runNotifyHooksAsync,
-  runNotifyHooksSync,
-  runVetoHooksAsync,
-  runVetoHooksSync,
+	disposeMiddlewares,
+	initMiddlewares,
+	runNotifyHooksAsync,
+	runNotifyHooksSync,
+	runVetoHooksAsync,
+	runVetoHooksSync,
 } from "./middleware-runner.js";
 // Nested utilities (extracted from old rule engine)
 export { deleteNestedValue, setNestedValue } from "./nested-utils.js";
@@ -86,36 +86,36 @@ export type { StandardSchemaLike } from "./standard-schema.js";
 export { createStandardSchemaValidator, isStandardSchemaLike } from "./standard-schema.js";
 // State types (SE1.2)
 export type {
-  CreateFormOptions,
-  FieldMetaEntry,
-  FormState,
-  IssueSeverity,
-  SubmitContext,
-  ValidationIssue,
+	CreateFormOptions,
+	FieldMetaEntry,
+	FormState,
+	IssueSeverity,
+	SubmitContext,
+	ValidationIssue,
 } from "./state.js";
 export { FormStore, type StateListener } from "./store.js";
 // Submit helpers
 export { applySubmitOutcome } from "./submit.js";
 // Timeout utilities (SE6.3)
 export {
-  DEFAULT_RUNTIME_CONSTRAINTS,
-  type RuntimeConstraints,
-  withTimeout,
+	DEFAULT_RUNTIME_CONSTRAINTS,
+	type RuntimeConstraints,
+	withTimeout,
 } from "./timeout.js";
 // Transaction model (SE1.3)
 export { defaultStrategy, type StateStrategy, Transaction, type TransactionSnapshot } from "./transaction.js";
 // Transforms (SE6.1)
 export {
-  createConfigurableDateEgressTransform,
-  createDateEgressTransform,
-  createDateTransform,
-  createFieldTransform,
-  type DateEgressFormat,
-  type DateEgressOptions,
-  runTransforms,
-  type TransformContext,
-  type TransformDefinition,
-  type TransformPhase,
+	createConfigurableDateEgressTransform,
+	createDateEgressTransform,
+	createDateTransform,
+	createFieldTransform,
+	type DateEgressFormat,
+	type DateEgressOptions,
+	runTransforms,
+	type TransformContext,
+	type TransformDefinition,
+	type TransformPhase,
 } from "./transforms.js";
 // Trigger filter
 export { shouldShowIssues, type TriggerContext } from "./trigger-filter.js";

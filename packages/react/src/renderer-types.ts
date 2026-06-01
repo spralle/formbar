@@ -8,14 +8,14 @@ export type FieldAriaAttributes = FieldA11yProps;
 
 /** Props passed to every layout node renderer */
 export interface LayoutRendererProps {
-  readonly node: LayoutNode;
-  readonly children?: ReactNode;
-  readonly aria?: FieldAriaAttributes;
-  readonly issues?: readonly ValidationIssue[];
+	readonly node: LayoutNode;
+	readonly children?: ReactNode;
+	readonly aria?: FieldAriaAttributes;
+	readonly issues?: readonly ValidationIssue[];
 }
 
 /** A renderer for a specific node type */
 export interface NodeRenderer {
-  readonly type: string;
-  readonly component: ComponentType<LayoutRendererProps>;
+	readonly type: string;
+	readonly component: ComponentType<LayoutRendererProps>;
 }

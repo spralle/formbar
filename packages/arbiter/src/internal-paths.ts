@@ -3,5 +3,5 @@
  * Filter them out of write intents.
  */
 export function isArbiterInternalPath(path: string): boolean {
-  return path.startsWith("$") && !path.startsWith("$ui.");
+	return path.startsWith("$") && !path.startsWith("$ui.");
 }

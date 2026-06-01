@@ -54,18 +54,8 @@
       "name": "@formbar/core",
       "version": "0.1.0",
       "devDependencies": {
-        "@arbitre/core": "link:@arbitre/core",
         "@formbar/from-schema": "workspace:*",
-        "kuery": "link:kuery",
       },
-      "peerDependencies": {
-        "@arbitre/core": ">=0.1.0",
-        "kuery": ">=0.1.0",
-      },
-      "optionalPeers": [
-        "@arbitre/core",
-        "kuery",
-      ],
     },
     "packages/from-schema": {
       "name": "@formbar/from-schema",

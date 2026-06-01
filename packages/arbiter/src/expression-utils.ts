@@ -6,7 +6,7 @@ import type { ExprNode } from "kuery";
  * This is a convenience re-export for consumers using expressions with arbiter rules.
  */
 export function evaluateExpression(expr: ExprNode, context: Record<string, unknown>): unknown {
-  return evaluate(expr, context);
+	return evaluate(expr, context);
 }
 
 export { assertSafeSegment };
