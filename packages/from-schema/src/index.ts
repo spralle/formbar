@@ -42,6 +42,7 @@ export {
 	type SchemaFormResult,
 } from "./create-schema-form.js";
 export { FromSchemaError, type FromSchemaErrorCode } from "./errors.js";
+export { applyFormbarMetadata } from "./formbar-metadata.js";
 export { compileLayout, type LayoutCompileOptions } from "./layout/layout-compiler.js";
 export { type LayoutNodeDefinition, LayoutNodeRegistry } from "./layout/layout-registry.js";
 export {

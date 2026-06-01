@@ -23,7 +23,7 @@
 	},
 	"dependencies": {
 		"@formbar/core": "workspace:*",
-		"@scheman/core": "workspace:*"
+		"@scheman/core": "^0.1.0"
 	},
 	"peerDependencies": {
 		"zod": ">=3.0.0 || >=4.0.0"

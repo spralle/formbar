@@ -2,6 +2,7 @@ import type { ValidatorFn } from "@formbar/core";
 import { createStandardSchemaValidator, isStandardSchemaLike } from "@formbar/core";
 import { type JsonSchema, type SchemaFieldInfo, type SchemaMetadata, ingestSchema } from "@scheman/core";
 import { createJsonSchemaValidator, isJsonSchema } from "./adapters/json-schema-validator.js";
+import { applyFormbarMetadata } from "./formbar-metadata.js";
 import { type LayoutMiddleware, applyLayoutMiddleware } from "./layout-middleware.js";
 import { compileLayout } from "./layout/layout-compiler.js";
 import type { LayoutNode } from "./layout/layout-types.js";
@@ -46,7 +47,8 @@ export interface SchemaFormResult {
  * ```
  */
 export function createSchemaForm(schema: unknown, options?: CreateSchemaFormOptions): SchemaFormResult {
-	const result = ingestSchema(schema);
+	const rawResult = ingestSchema(schema);
+	const result = applyFormbarMetadata(rawResult);
 	let layout = options?.layoutOverride ?? compileLayout(result);
 
 	if (options?.layoutMiddleware?.length) {
