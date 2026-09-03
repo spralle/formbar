@@ -1,2 +1,5 @@
 [install.peer]
 optional = true
+
+[test]
+preload = ["./test/workspace-source-modules.ts"]
