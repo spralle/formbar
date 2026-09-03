@@ -9,6 +9,7 @@ export default defineConfig({
 			"@formbar/core": new URL("../../packages/core/src/index.ts", import.meta.url).pathname,
 			"@formbar/from-schema": new URL("../../packages/from-schema/src/index.ts", import.meta.url).pathname,
 			"@formbar/react": new URL("../../packages/react/src/index.ts", import.meta.url).pathname,
+			"@formbar/react-schema": new URL("../../packages/react-schema/src/index.ts", import.meta.url).pathname,
 		},
 	},
 	server: {
