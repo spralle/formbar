@@ -4,6 +4,11 @@
 	"type": "module",
 	"description": "Headless form state engine with validation, transforms, and middleware",
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/surikaterna/formbar.git",
+		"directory": "packages/core"
+	},
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",

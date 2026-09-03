@@ -4,6 +4,11 @@
 	"type": "module",
 	"description": "Arbiter rule engine bridge for @formbar/core — declarative UI governance via production rules",
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/surikaterna/formbar.git",
+		"directory": "packages/arbiter"
+	},
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
