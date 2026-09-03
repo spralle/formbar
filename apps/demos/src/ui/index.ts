@@ -114,8 +114,8 @@ export function SelectItem({ children, value, ...props }: OptionHTMLAttributes<H
 	return createElement("option", { value, ...props }, children);
 }
 
-export function SelectValue({ placeholder }: { placeholder?: string }) {
-	return placeholder ? createElement("option", { value: "", disabled: true }, placeholder) : null;
+export function SelectValue(_props: { placeholder?: string }) {
+	return null;
 }
 
 export function Textarea({ className, ...props }: HTMLAttributes<HTMLTextAreaElement>) {
