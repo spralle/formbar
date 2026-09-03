@@ -140,4 +140,11 @@
 	body {
 		@apply bg-background text-foreground;
 	}
+	select.formbar-demo-select {
+		color-scheme: dark;
+	}
+	select.formbar-demo-select option {
+		background-color: var(--popover);
+		color: var(--popover-foreground);
+	}
 }

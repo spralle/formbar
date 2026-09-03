@@ -67,6 +67,10 @@ type SelectChildProps = {
 	readonly placeholder?: string;
 };
 
+const selectControlClassName =
+	"formbar-demo-select border-input bg-surface-inset text-foreground border rounded px-3 py-2 text-sm";
+const selectOptionClassName = "bg-popover text-popover-foreground";
+
 function getSelectTriggerClass(children: ReactNode): string | undefined {
 	for (const child of Children.toArray(children)) {
 		if (!isValidElement<SelectChildProps>(child)) continue;
@@ -80,7 +84,11 @@ function getSelectOptions(children: ReactNode): ReactNode[] {
 	return Children.toArray(children).flatMap((child) => {
 		if (!isValidElement<SelectChildProps>(child)) return [];
 		if (child.type === SelectValue && child.props.placeholder) {
-			return createElement("option", { key: "__placeholder", value: "", disabled: true }, child.props.placeholder);
+			return createElement(
+				"option",
+				{ key: "__placeholder", value: "", disabled: true, className: selectOptionClassName },
+				child.props.placeholder,
+			);
 		}
 		if (child.type === SelectItem || child.type === "option") return child;
 		return getSelectOptions(child.props.children);
@@ -91,7 +99,7 @@ export function Select({ children, className, onChange, onValueChange, ...props 
 	return createElement(
 		"select",
 		{
-			className: cn("border rounded px-3 py-2 text-sm", getSelectTriggerClass(children), className),
+			className: cn(selectControlClassName, getSelectTriggerClass(children), className),
 			onChange: (event: ChangeEvent<HTMLSelectElement>) => {
 				onChange?.(event);
 				onValueChange?.(event.currentTarget.value);
@@ -110,12 +118,19 @@ export function SelectContent({ children }: HTMLAttributes<HTMLDivElement>) {
 	return createElement(Fragment, null, children);
 }
 
-export function SelectItem({ children, value, ...props }: OptionHTMLAttributes<HTMLOptionElement> & { value: string }) {
-	return createElement("option", { value, ...props }, children);
+export function SelectItem({
+	children,
+	className,
+	value,
+	...props
+}: OptionHTMLAttributes<HTMLOptionElement> & { value: string }) {
+	return createElement("option", { value, className: cn(selectOptionClassName, className), ...props }, children);
 }
 
 export function SelectValue({ placeholder }: { placeholder?: string }) {
-	return placeholder ? createElement("option", { value: "", disabled: true }, placeholder) : null;
+	return placeholder
+		? createElement("option", { value: "", disabled: true, className: selectOptionClassName }, placeholder)
+		: null;
 }
 
 export function Textarea({ className, ...props }: HTMLAttributes<HTMLTextAreaElement>) {
