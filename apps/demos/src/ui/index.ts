@@ -104,10 +104,10 @@ export function Button({
 	children,
 	className,
 	...props
-}: HTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string; type?: string; disabled?: boolean }) {
+}: HTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string; disabled?: boolean }) {
 	return createElement(
 		"button",
-		{ className: cn("px-4 py-2 rounded text-sm font-medium border", className), ...props },
+		{ type: "button", className: cn("px-4 py-2 rounded text-sm font-medium border", className), ...props },
 		children,
 	);
 }
@@ -130,7 +130,11 @@ export function TabsTrigger({
 	value,
 	...props
 }: HTMLAttributes<HTMLButtonElement> & { value: string }) {
-	return createElement("button", { className: cn("px-3 py-1.5 text-sm", className), ...props }, children);
+	return createElement(
+		"button",
+		{ type: "button", className: cn("px-3 py-1.5 text-sm", className), ...props },
+		children,
+	);
 }
 
 export function TabsContent({

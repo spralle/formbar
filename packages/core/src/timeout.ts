@@ -16,7 +16,7 @@ export const DEFAULT_RUNTIME_CONSTRAINTS: RuntimeConstraints = {
 
 /** Race a promise against a timeout, throwing FORMBAR_TIMEOUT on expiry. */
 export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
-	let timeoutId: ReturnType<typeof setTimeout>;
+	let timeoutId: ReturnType<typeof setTimeout> | undefined;
 	const timeoutPromise = new Promise<never>((_, reject) => {
 		timeoutId = setTimeout(() => {
 			reject(new FormbarError("FORMBAR_TIMEOUT", errorMessage));
@@ -25,10 +25,10 @@ export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, err
 
 	try {
 		const result = await Promise.race([promise, timeoutPromise]);
-		clearTimeout(timeoutId!);
+		if (timeoutId !== undefined) clearTimeout(timeoutId);
 		return result;
 	} catch (error) {
-		clearTimeout(timeoutId!);
+		if (timeoutId !== undefined) clearTimeout(timeoutId);
 		throw error;
 	}
 }

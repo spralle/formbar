@@ -97,7 +97,7 @@ describe("createForm with Standard Schema validator", () => {
 	it("auto-detects and wraps Standard Schema in validators array", () => {
 		const schema = mockStandardSchema((data) => {
 			const d = data as Record<string, unknown>;
-			if (!d["name"]) return { issues: [{ message: "Name required", path: ["name"] }] };
+			if (!d.name) return { issues: [{ message: "Name required", path: ["name"] }] };
 			return { value: data };
 		});
 

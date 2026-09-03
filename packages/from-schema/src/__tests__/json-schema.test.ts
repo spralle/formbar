@@ -87,14 +87,14 @@ describe("extractFromJsonSchema", () => {
 		};
 		const result = extractFromJsonSchema(schema);
 		const typeMap = Object.fromEntries(result.fields.map((f) => [f.path, f.type]));
-		expect(typeMap["s"]).toBe("string");
-		expect(typeMap["n"]).toBe("number");
-		expect(typeMap["b"]).toBe("boolean");
+		expect(typeMap.s).toBe("string");
+		expect(typeMap.n).toBe("number");
+		expect(typeMap.b).toBe("boolean");
 		expect(typeMap["o.x"]).toBe("string");
-		expect(typeMap["a"]).toBe("array");
-		expect(typeMap["d"]).toBe("date");
-		expect(typeMap["dt"]).toBe("datetime");
-		expect(typeMap["e"]).toBe("enum");
+		expect(typeMap.a).toBe("array");
+		expect(typeMap.d).toBe("date");
+		expect(typeMap.dt).toBe("datetime");
+		expect(typeMap.e).toBe("enum");
 	});
 });
 

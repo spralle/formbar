@@ -75,7 +75,7 @@ describe("createSchemaForm", () => {
 				vendor: "test",
 				validate: (data: unknown) => {
 					const d = data as Record<string, unknown>;
-					if (!d["name"]) return { issues: [{ message: "Name required", path: ["name"] }] };
+					if (!d.name) return { issues: [{ message: "Name required", path: ["name"] }] };
 					return { value: data };
 				},
 			},

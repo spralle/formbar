@@ -40,7 +40,7 @@ export function createArbiterPlugin(options: ArbiterPluginOptions): FormPlugin {
 	return {
 		id: "arbiter",
 
-		evaluate(ctx: PluginEvaluateContext): PluginEvaluateResult | void {
+		evaluate(ctx: PluginEvaluateContext): PluginEvaluateResult | undefined {
 			// Prevent re-entry from own writes
 			if (ctx.origin.startsWith("plugin:arbiter")) return;
 

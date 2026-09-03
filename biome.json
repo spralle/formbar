@@ -1,5 +1,8 @@
 {
 	"$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+	"files": {
+		"ignore": ["**/dist/**", "trees/**"]
+	},
 	"organizeImports": { "enabled": true },
 	"linter": {
 		"enabled": true,
@@ -17,5 +20,22 @@
 			"trailingCommas": "all",
 			"semicolons": "always"
 		}
-	}
+	},
+	"overrides": [
+		{
+			"include": [
+				"apps/demos/src/demos/*arbiter*.tsx",
+				"packages/arbiter/**",
+				"packages/core/src/__tests__/pipeline.test.ts",
+				"packages/from-schema/**"
+			],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noThenProperty": "off"
+					}
+				}
+			}
+		}
+	]
 }

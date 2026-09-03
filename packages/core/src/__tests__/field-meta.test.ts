@@ -93,8 +93,8 @@ describe("field metadata", () => {
 		form.setValue("name", "Bob");
 		expect(Object.values(form.getState().fieldMeta).some((m) => m.touched)).toBe(true);
 		const meta = form.getState().fieldMeta;
-		expect(meta["name"]?.touched).toBe(true);
-		expect(meta["age"]).toBeUndefined();
+		expect(meta.name?.touched).toBe(true);
+		expect(meta.age).toBeUndefined();
 		form.dispose();
 	});
 
@@ -200,7 +200,7 @@ describe("validation trigger gating", () => {
 		const form = createForm({ initialData: { name: "Alice" } });
 		form.setValue("name", "Bob");
 		const meta = form.getState().fieldMeta;
-		expect(meta["name"]?.dirty).toBe(true);
+		expect(meta.name?.dirty).toBe(true);
 		form.dispose();
 	});
 

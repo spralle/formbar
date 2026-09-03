@@ -12,8 +12,8 @@ describe("resolveFieldStates", () => {
 	it("resolves visible=false from uiState", () => {
 		const uiState = { "foo.visible": false };
 		const result = resolveFieldStates(uiState, ["foo", "bar"]);
-		expect(result.get("foo")!.visible).toBe(false);
-		expect(result.get("bar")!.visible).toBe(true);
+		expect(result.get("foo")?.visible).toBe(false);
+		expect(result.get("bar")?.visible).toBe(true);
 	});
 
 	it("resolves readOnly and disabled from uiState", () => {
@@ -66,8 +66,8 @@ describe("pruneHiddenFields", () => {
 
 		const result = pruneHiddenFields(tree, states);
 		expect(result).not.toBeNull();
-		expect(result!.children).toHaveLength(1);
-		expect(result!.children![0].path).toBe("bar");
+		expect(result?.children).toHaveLength(1);
+		expect(result?.children?.[0].path).toBe("bar");
 	});
 
 	it("keeps all fields when all are visible", () => {
@@ -75,12 +75,12 @@ describe("pruneHiddenFields", () => {
 		const states = new Map<string, { visible: boolean; readOnly: boolean; disabled: boolean }>();
 
 		const result = pruneHiddenFields(tree, states);
-		expect(result!.children).toHaveLength(2);
+		expect(result?.children).toHaveLength(2);
 	});
 
 	it("does not mutate the original tree", () => {
 		const tree = makeGroup([makeField("foo"), makeField("bar")]);
-		const original = tree.children!.length;
+		const original = tree.children?.length;
 		const states = new Map([["foo", { visible: false, readOnly: false, disabled: false }]]);
 
 		pruneHiddenFields(tree, states);
@@ -92,6 +92,6 @@ describe("pruneHiddenFields", () => {
 		const states = new Map([["nested", { visible: false, readOnly: false, disabled: false }]]);
 
 		const result = pruneHiddenFields(tree, states);
-		expect(result!.children![0].children).toHaveLength(0);
+		expect(result?.children?.[0].children).toHaveLength(0);
 	});
 });

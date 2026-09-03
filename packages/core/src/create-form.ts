@@ -279,9 +279,6 @@ export function createForm<TData, TUi>(
 		for (const plugin of plugins) plugin.onReset?.();
 	}
 
-	// Late-bound api reference for submit handler
-	let api: FormApi<TData, TUi>;
-
 	let submitAbortController: AbortController | undefined;
 
 	const submit = createSubmitHandler<TData, TUi>({
@@ -300,7 +297,7 @@ export function createForm<TData, TUi>(
 			: undefined,
 	});
 
-	api = {
+	const api: FormApi<TData, TUi> = {
 		getState: () => store.getState(),
 		dispatch,
 		setValue: dispatchSetValue,

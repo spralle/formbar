@@ -68,14 +68,14 @@ const schema = {
 function StarRating({ value, max, onChange }: { value: number; max: number; onChange: (v: number) => void }) {
 	return (
 		<div className="flex gap-1">
-			{Array.from({ length: max }, (_, i) => (
+			{Array.from({ length: max }, (_, i) => i + 1).map((rating) => (
 				<button
-					key={i}
+					key={rating}
 					type="button"
-					onClick={() => onChange(i + 1)}
+					onClick={() => onChange(rating)}
 					className={cn(
 						"text-xl transition-colors cursor-pointer",
-						i < value ? "text-warning" : "text-muted-foreground/30",
+						rating <= value ? "text-warning" : "text-muted-foreground/30",
 					)}
 				>
 					★

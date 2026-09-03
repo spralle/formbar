@@ -50,7 +50,7 @@ function processField(field: SchemaFieldInfo): SchemaFieldInfo {
 		);
 	}
 
-	const formbarExt = extensions["formbar"] as Record<string, unknown> | undefined;
+	const formbarExt = extensions.formbar as Record<string, unknown> | undefined;
 	if (!formbarExt) return field;
 
 	// Elevate known keys to field metadata level, remainder stays in extra
@@ -72,7 +72,9 @@ function processField(field: SchemaFieldInfo): SchemaFieldInfo {
 	const newMetadata: SchemaFieldMetadata = {
 		...field.metadata,
 		...elevated,
-		...(Object.keys(extra).length > 0 ? { extra: { ...((field.metadata?.extra as Record<string, unknown>) ?? {}), ...extra } } : {}),
+		...(Object.keys(extra).length > 0
+			? { extra: { ...((field.metadata?.extra as Record<string, unknown>) ?? {}), ...extra } }
+			: {}),
 		...(hasRemainingExtensions ? { extensions: remainingExtensions } : { extensions: undefined }),
 	};
 

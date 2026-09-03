@@ -14,6 +14,13 @@ import {
 	Switch,
 } from "../ui";
 
+let nextArrayItemKey = 0;
+
+function createArrayItemKey(): string {
+	nextArrayItemKey += 1;
+	return `array-item-${nextArrayItemKey}`;
+}
+
 export interface ArrayRendererProps {
 	readonly node: LayoutNode;
 	readonly form: FormApi;
@@ -30,6 +37,7 @@ export function ArrayRenderer({ node, form, fieldMap, onChange, itemSchema }: Ar
 		const val = data?.[node.path ?? ""];
 		return Array.isArray(val) ? val : [];
 	});
+	const [itemKeys, setItemKeys] = useState<string[]>(() => items.map(createArrayItemKey));
 
 	const updateItems = useCallback(
 		(newItems: unknown[]) => {
@@ -42,10 +50,12 @@ export function ArrayRenderer({ node, form, fieldMap, onChange, itemSchema }: Ar
 	const addItem = () => {
 		const hasRealChildren = node.children?.some((c) => c.type === "field" && c.path && !c.path.endsWith("[]")) ?? false;
 		const isObjectItems = hasRealChildren || itemSchema?.type === "object";
+		setItemKeys([...itemKeys, createArrayItemKey()]);
 		updateItems([...items, isObjectItems ? {} : ""]);
 	};
 
 	const removeItem = (index: number) => {
+		setItemKeys(itemKeys.filter((_, i) => i !== index));
 		updateItems(items.filter((_, i) => i !== index));
 	};
 
@@ -59,24 +69,50 @@ export function ArrayRenderer({ node, form, fieldMap, onChange, itemSchema }: Ar
 			</div>
 			<div className="flex flex-col gap-2 rounded-md border border-border-muted p-3">
 				{items.length === 0 && <p className="text-xs text-muted-foreground italic">No items yet</p>}
-				{items.map((item, index) => (
-					<ArrayItem
-						key={index}
-						item={item}
-						index={index}
-						items={items}
-						itemSchema={itemSchema}
-						node={node}
-						fieldMap={fieldMap}
-						updateItems={updateItems}
-						removeItem={removeItem}
-					/>
-				))}
+				<ArrayItemRows
+					items={items}
+					itemKeys={itemKeys}
+					itemSchema={itemSchema}
+					node={node}
+					fieldMap={fieldMap}
+					updateItems={updateItems}
+					removeItem={removeItem}
+				/>
 				<Button variant="outline" size="sm" onClick={addItem} className="self-start mt-1">
 					+ Add Item
 				</Button>
 			</div>
 		</div>
+	);
+}
+
+interface ArrayItemRowsProps {
+	readonly items: unknown[];
+	readonly itemKeys: string[];
+	readonly itemSchema?: Record<string, unknown>;
+	readonly node: LayoutNode;
+	readonly fieldMap: Map<string, SchemaFieldInfo>;
+	readonly updateItems: (newItems: unknown[]) => void;
+	readonly removeItem: (index: number) => void;
+}
+
+function ArrayItemRows({ items, itemKeys, itemSchema, node, fieldMap, updateItems, removeItem }: ArrayItemRowsProps) {
+	return (
+		<>
+			{items.map((item, index) => (
+				<ArrayItem
+					key={itemKeys[index]}
+					item={item}
+					index={index}
+					items={items}
+					itemSchema={itemSchema}
+					node={node}
+					fieldMap={fieldMap}
+					updateItems={updateItems}
+					removeItem={removeItem}
+				/>
+			))}
+		</>
 	);
 }
 

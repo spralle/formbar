@@ -119,12 +119,12 @@ describe("reset clears listenerTriggered", () => {
 		form.setValue("password", "def");
 
 		// listenerTriggered should be true
-		expect(form.getState().fieldMeta["confirmPassword"]?.listenerTriggered).toBe(true);
+		expect(form.getState().fieldMeta.confirmPassword?.listenerTriggered).toBe(true);
 
 		form.reset();
 
 		// After reset, all fieldMeta cleared
-		expect(form.getState().fieldMeta["confirmPassword"]).toBeUndefined();
+		expect(form.getState().fieldMeta.confirmPassword).toBeUndefined();
 		form.dispose();
 	});
 });

@@ -1,8 +1,8 @@
 import type { ValidationIssue } from "@formbar/core";
 import type { LayoutNode } from "@formbar/from-schema";
+import { getFieldProps } from "@formbar/react";
 import type { ReactElement } from "react";
 import { createElement } from "react";
-import { getFieldProps } from "@formbar/react";
 import type { RendererRegistry } from "./renderer-registry.js";
 import type { LayoutRendererProps } from "./renderer-types.js";
 

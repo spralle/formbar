@@ -115,14 +115,14 @@ describe("applyLayoutMiddleware", () => {
 
 		applyLayoutMiddleware(tree, [spy], fieldInfoMap as ReadonlyMap<string, never>);
 
-		const childCtx = contexts.find((c) => c.id === "child")!;
-		expect(childCtx.ctx.depth).toBe(1);
-		expect(childCtx.ctx.parent?.id).toBe("root");
-		expect(childCtx.ctx.fieldInfo).toBe(fieldInfo);
+		const childCtx = contexts.find((c) => c.id === "child");
+		expect(childCtx?.ctx.depth).toBe(1);
+		expect(childCtx?.ctx.parent?.id).toBe("root");
+		expect(childCtx?.ctx.fieldInfo).toBe(fieldInfo);
 
-		const rootCtx = contexts.find((c) => c.id === "root")!;
-		expect(rootCtx.ctx.depth).toBe(0);
-		expect(rootCtx.ctx.parent).toBeUndefined();
+		const rootCtx = contexts.find((c) => c.id === "root");
+		expect(rootCtx?.ctx.depth).toBe(0);
+		expect(rootCtx?.ctx.parent).toBeUndefined();
 	});
 
 	it("empty middleware array returns tree unchanged", () => {

@@ -33,7 +33,7 @@ export function isStandardSchemaLike(value: unknown): value is StandardSchemaLik
 	const std = obj["~standard"];
 	if (typeof std !== "object" || std === null) return false;
 	const stdObj = std as Record<string, unknown>;
-	return typeof stdObj["validate"] === "function" && stdObj["version"] === 1;
+	return typeof stdObj.validate === "function" && stdObj.version === 1;
 }
 
 /**
@@ -57,8 +57,7 @@ export function createStandardSchemaValidator(schema: StandardSchemaLike): Valid
 		if (result instanceof Promise) {
 			throw new FormbarError(
 				"FORMBAR_ASYNC_SCHEMA_IN_SYNC",
-				`Standard Schema vendor "${vendor}" returned a Promise from validate(). ` +
-					"Use asyncValidators for async schema validation.",
+				`Standard Schema vendor "${vendor}" returned a Promise from validate(). Use asyncValidators for async schema validation.`,
 			);
 		}
 		if (!result.issues || result.issues.length === 0) return [];

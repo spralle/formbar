@@ -29,10 +29,7 @@
 			"require": "./dist/validation.entry.cjs"
 		}
 	},
-	"files": [
-		"dist",
-		"src"
-	],
+	"files": ["dist", "src"],
 	"sideEffects": false,
 	"scripts": {
 		"build": "tsc --noEmit",

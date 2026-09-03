@@ -18,8 +18,16 @@ interface UiState {
 }
 
 const arbiterRules = [
-	{ name: "canSubmit", when: { agreeToTerms: true }, then: [{ $set: { "$ui.canSubmit": true } }] },
-	{ name: "cannotSubmit", when: { agreeToTerms: { $ne: true } }, then: [{ $set: { "$ui.canSubmit": false } }] },
+	{
+		name: "canSubmit",
+		when: { agreeToTerms: true },
+		then: [{ $set: { "$ui.canSubmit": true } }],
+	},
+	{
+		name: "cannotSubmit",
+		when: { agreeToTerms: { $ne: true } },
+		then: [{ $set: { "$ui.canSubmit": false } }],
+	},
 ] as const;
 
 const schema = {

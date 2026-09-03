@@ -96,8 +96,11 @@ export interface PluginSubmitContext<TData = unknown, TUi = unknown> {
  */
 export interface FormPlugin<TData = unknown, TUi = unknown> {
 	readonly id: string;
+	// biome-ignore lint/suspicious/noConfusingVoidType: Plugin callbacks intentionally permit ignored return values.
 	onInit?(ctx: PluginInitContext<TData, TUi>): void | (() => void);
+	// biome-ignore lint/suspicious/noConfusingVoidType: Plugin callbacks intentionally permit ignored return values.
 	evaluate?(ctx: PluginEvaluateContext<TData, TUi>): PluginEvaluateResult | void;
+	// biome-ignore lint/suspicious/noConfusingVoidType: Plugin callbacks intentionally permit ignored return values.
 	beforeSubmit?(ctx: PluginSubmitContext<TData, TUi>): readonly ValidationIssue[] | void;
 	onReset?(): void;
 	onDispose?(): void;
