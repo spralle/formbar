@@ -37,6 +37,6 @@
 		"test": "vitest run"
 	},
 	"devDependencies": {
-		"@formbar/from-schema": "workspace:*"
+		"@formbar/from-schema": "^0.2.0"
 	}
 }
