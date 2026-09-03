@@ -1,6 +1,6 @@
 # npm trusted publishing setup
 
-Formbar publishes packages from `.github/workflows/publish.yml` with GitHub Actions OIDC and npm provenance.
+Formbar publishes packages from `.github/workflows/release.yml` with GitHub Actions OIDC and npm provenance.
 Do not create or configure an `NPM_TOKEN` secret for this workflow.
 
 In npm, add a trusted publisher for each public package:
@@ -15,7 +15,7 @@ Use these settings for each package:
 
 - Provider: GitHub Actions
 - Repository owner/name: `surikaterna/formbar`
-- Workflow filename: `publish.yml`
+- Workflow filename: `release.yml`
 - Environment: leave blank unless a GitHub environment is added later
 
 The workflow grants `id-token: write` and sets `NPM_CONFIG_PROVENANCE=true` for `bunx changeset publish`,
