@@ -1,5 +1,6 @@
+import { createArbiterPlugin } from "@formbar/arbiter";
 import { useForm } from "@formbar/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { DemoShell } from "../renderers/DemoShell";
 import { Card, CardContent, CardHeader, CardTitle, cn } from "../ui";
 
@@ -41,10 +42,12 @@ const schema = {
 };
 
 export function ArbiterValidationGatingDemo() {
+	const plugins = useMemo(() => [createArbiterPlugin({ rules: arbiterRules })], []);
+
 	const form = useForm<FormData, UiState>({
 		initialData: { name: "", email: "", age: 0, agreeToTerms: false },
 		initialUiState: { canSubmit: false },
-		arbiterRules,
+		plugins,
 	});
 
 	const { data, uiState } = form.getState();
