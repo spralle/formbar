@@ -1,5 +1,15 @@
 # @formbar/react-schema
 
+## 0.2.1
+
+### Patch Changes
+
+- c09f1b7: Fix the repository lint gate without changing public APIs, and repair package dependency metadata by replacing workspace-link ranges with publishable semver ranges for the patch release.
+- Updated dependencies [c09f1b7]
+  - @formbar/core@0.2.1
+  - @formbar/from-schema@0.2.1
+  - @formbar/react@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
