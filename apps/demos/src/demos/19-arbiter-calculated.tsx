@@ -1,5 +1,6 @@
 import { createArbiterPlugin } from "@formbar/arbiter";
 import { useForm } from "@formbar/react";
+import { useMemo } from "react";
 import { DemoShell } from "../renderers/DemoShell";
 import { Badge, Card, CardContent, CardHeader, CardTitle, cn } from "../ui";
 
@@ -38,10 +39,12 @@ const schema = {
 };
 
 export function ArbiterCalculatedDemo() {
+	const plugins = useMemo(() => [createArbiterPlugin({ rules: arbiterRules })], []);
+
 	const form = useForm<FormData, UiState>({
 		initialData: { quantity: 1, unitPrice: 25 },
 		initialUiState: { tier: "small", showBulkDiscount: false },
-		plugins: [createArbiterPlugin({ rules: arbiterRules })],
+		plugins,
 	});
 
 	const { data, uiState } = form.getState();
