@@ -41,6 +41,7 @@ export {
 	createSchemaForm,
 	type SchemaFormResult,
 } from "./create-schema-form.js";
+export { type FormbarEnumOption, type FormbarEnumValue, normalizeEnumOptions } from "./enum-options.js";
 export { FromSchemaError, type FromSchemaErrorCode } from "./errors.js";
 export { applyFormbarMetadata } from "./formbar-metadata.js";
 export { compileLayout, type LayoutCompileOptions } from "./layout/layout-compiler.js";

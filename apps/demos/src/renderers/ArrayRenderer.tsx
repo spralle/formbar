@@ -1,5 +1,10 @@
 import type { FormApi } from "@formbar/core";
-import type { LayoutNode, SchemaFieldInfo } from "@formbar/from-schema";
+import {
+	type FormbarEnumOption,
+	type LayoutNode,
+	type SchemaFieldInfo,
+	normalizeEnumOptions,
+} from "@formbar/from-schema";
 import { useCallback, useState } from "react";
 import {
 	Badge,
@@ -13,6 +18,7 @@ import {
 	SelectValue,
 	Switch,
 } from "../ui";
+import { getEnumOptionKey, getEnumValueByKey, getSelectedEnumOptionKey } from "./enum-option-keys";
 
 let nextArrayItemKey = 0;
 
@@ -59,6 +65,37 @@ export function ArrayRenderer({ node, form, fieldMap, onChange, itemSchema }: Ar
 		updateItems(items.filter((_, i) => i !== index));
 	};
 
+	return (
+		<ArrayPanel
+			title={title}
+			items={items}
+			itemKeys={itemKeys}
+			itemSchema={itemSchema}
+			node={node}
+			fieldMap={fieldMap}
+			updateItems={updateItems}
+			removeItem={removeItem}
+			addItem={addItem}
+		/>
+	);
+}
+
+interface ArrayPanelProps extends ArrayItemRowsProps {
+	readonly title: string;
+	readonly addItem: () => void;
+}
+
+function ArrayPanel({
+	title,
+	items,
+	itemKeys,
+	itemSchema,
+	node,
+	fieldMap,
+	updateItems,
+	removeItem,
+	addItem,
+}: ArrayPanelProps) {
 	return (
 		<div className="flex flex-col gap-2">
 			<div className="flex items-center justify-between">
@@ -127,61 +164,28 @@ interface ArrayItemProps {
 	readonly removeItem: (index: number) => void;
 }
 
+interface ArrayFieldEntry {
+	readonly key: string;
+	readonly label: string;
+	readonly enumOptions: readonly FormbarEnumOption[] | undefined;
+	readonly fieldType: string;
+}
+
 function ArrayItem({ item, index, items, itemSchema, node, fieldMap, updateItems, removeItem }: ArrayItemProps) {
 	if (typeof item !== "object" || item === null) {
-		return (
-			<div className="flex items-center gap-2">
-				<Input
-					className="flex-1"
-					value={String(item ?? "")}
-					onChange={(e) => {
-						const newItems = [...items];
-						newItems[index] = e.target.value;
-						updateItems(newItems);
-					}}
-					placeholder={`Item ${index + 1}`}
-				/>
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={() => removeItem(index)}
-					className="text-destructive shrink-0 h-8 w-8 p-0"
-				>
-					×
-				</Button>
-			</div>
-		);
+		return renderPrimitiveArrayItem(item, index, items, itemSchema, updateItems, removeItem);
 	}
 
-	const realChildren = node.children?.filter((c) => c.type === "field" && c.path && !c.path.endsWith("[]"));
-	const properties = (itemSchema?.properties ?? {}) as Record<string, Record<string, unknown>>;
 	const record = item as Record<string, unknown>;
-
-	// Derive field entries from layout children (preferred) or itemSchema fallback
-	const fieldEntries: Array<{ key: string; label: string; enumValues: string[] | undefined; fieldType: string }> =
-		realChildren && realChildren.length > 0
-			? realChildren.map((child) => {
-					const field = child.path ? fieldMap.get(child.path) : undefined;
-					const key = child.path ? (child.path.split(".").pop() ?? "") : "";
-					const label = field?.metadata?.title ?? key;
-					const enumValues = field?.metadata?.enum as string[] | undefined;
-					const fieldType = field?.type ?? "string";
-					return { key, label, enumValues, fieldType };
-				})
-			: Object.entries(properties).map(([key, propSchema]) => ({
-					key,
-					label: (propSchema.title as string) ?? key,
-					enumValues: propSchema.enum as string[] | undefined,
-					fieldType: propSchema.type as string,
-				}));
+	const fieldEntries = getArrayFieldEntries(node, itemSchema, fieldMap);
 
 	return (
 		<div className="flex items-start gap-2">
 			<div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-md border border-border-muted p-3">
-				{fieldEntries.map(({ key, label, enumValues, fieldType }) => (
+				{fieldEntries.map(({ key, label, enumOptions, fieldType }) => (
 					<div key={key} className="flex flex-col gap-1">
 						<Label className="text-xs text-muted-foreground">{label}</Label>
-						{renderArrayItemField(key, record, fieldType, enumValues, (newValue) => {
+						{renderArrayItemField(key, record, fieldType, enumOptions, (newValue) => {
 							const newItems = [...items];
 							newItems[index] = { ...record, [key]: newValue };
 							updateItems(newItems);
@@ -201,28 +205,84 @@ function ArrayItem({ item, index, items, itemSchema, node, fieldMap, updateItems
 	);
 }
 
+function renderPrimitiveArrayItem(
+	item: unknown,
+	index: number,
+	items: unknown[],
+	itemSchema: Record<string, unknown> | undefined,
+	updateItems: (newItems: unknown[]) => void,
+	removeItem: (index: number) => void,
+): React.ReactNode {
+	const enumOptions = getSchemaEnumOptions(itemSchema);
+	const updateItem = (newValue: unknown) => {
+		const newItems = [...items];
+		newItems[index] = newValue;
+		updateItems(newItems);
+	};
+
+	return (
+		<div className="flex items-center gap-2">
+			{enumOptions ? (
+				renderEnumSelect(enumOptions, item, updateItem)
+			) : (
+				<Input
+					className="flex-1"
+					value={String(item ?? "")}
+					onChange={(e) => updateItem(e.target.value)}
+					placeholder={`Item ${index + 1}`}
+				/>
+			)}
+			<Button
+				variant="ghost"
+				size="sm"
+				onClick={() => removeItem(index)}
+				className="text-destructive shrink-0 h-8 w-8 p-0"
+			>
+				×
+			</Button>
+		</div>
+	);
+}
+
+function getArrayFieldEntries(
+	node: LayoutNode,
+	itemSchema: Record<string, unknown> | undefined,
+	fieldMap: Map<string, SchemaFieldInfo>,
+): ArrayFieldEntry[] {
+	const realChildren = node.children?.filter(
+		(child) => child.type === "field" && child.path && !child.path.endsWith("[]"),
+	);
+	if (realChildren && realChildren.length > 0) {
+		return realChildren.map((child) => {
+			const field = child.path ? fieldMap.get(child.path) : undefined;
+			const key = child.path ? (child.path.split(".").pop() ?? "") : "";
+			return {
+				key,
+				label: field?.metadata?.title ?? key,
+				enumOptions: field?.metadata?.enum ? normalizeEnumOptions(field.metadata) : undefined,
+				fieldType: field?.type ?? "string",
+			};
+		});
+	}
+
+	const properties = (itemSchema?.properties ?? {}) as Record<string, Record<string, unknown>>;
+	return Object.entries(properties).map(([key, propSchema]) => ({
+		key,
+		label: (propSchema.title as string) ?? key,
+		enumOptions: getSchemaEnumOptions(propSchema),
+		fieldType: propSchema.type as string,
+	}));
+}
+
 function renderArrayItemField(
 	key: string,
 	record: Record<string, unknown>,
 	fieldType: string,
-	enumValues: string[] | undefined,
+	enumOptions: readonly FormbarEnumOption[] | undefined,
 	onChange: (value: unknown) => void,
 ): React.ReactNode {
-	if (enumValues) {
-		return (
-			<Select value={String(record[key] ?? "")} onValueChange={onChange}>
-				<SelectTrigger className="h-8 text-xs">
-					<SelectValue placeholder="Select..." />
-				</SelectTrigger>
-				<SelectContent>
-					{enumValues.map((opt) => (
-						<SelectItem key={opt} value={opt}>
-							{opt}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
-		);
+	if (enumOptions) {
+		return renderEnumSelect(enumOptions, record[key], onChange);
 	}
 	if (fieldType === "boolean") {
 		return <Switch checked={Boolean(record[key])} onCheckedChange={onChange} />;
@@ -238,4 +298,41 @@ function renderArrayItemField(
 		);
 	}
 	return <Input className="h-8 text-xs" value={String(record[key] ?? "")} onChange={(e) => onChange(e.target.value)} />;
+}
+
+function getSchemaEnumOptions(schema: Record<string, unknown> | undefined): readonly FormbarEnumOption[] | undefined {
+	if (!Array.isArray(schema?.enum)) return undefined;
+	const formbar = schema["x-formbar"] as Record<string, unknown> | undefined;
+	return normalizeEnumOptions({ enum: schema.enum, enumOptions: schema.enumOptions ?? formbar?.enumOptions });
+}
+
+function renderEnumSelect(
+	options: readonly FormbarEnumOption[],
+	value: unknown,
+	onChange: (value: unknown) => void,
+): React.ReactNode {
+	const handleOptionChange = (optionKey: string) => {
+		const optionValue = getEnumValueByKey(options, optionKey);
+		if (optionValue !== undefined) onChange(optionValue);
+	};
+
+	return (
+		<Select className="flex-1" value={getSelectedEnumOptionKey(options, value)} onValueChange={handleOptionChange}>
+			<SelectTrigger className="h-8 text-xs">
+				<SelectValue placeholder="Select..." />
+			</SelectTrigger>
+			<SelectContent>
+				{options.map((option, index) => (
+					<SelectItem
+						key={getEnumOptionKey(index)}
+						value={getEnumOptionKey(index)}
+						disabled={option.disabled}
+						title={option.description}
+					>
+						{option.label}
+					</SelectItem>
+				))}
+			</SelectContent>
+		</Select>
+	);
 }

@@ -1,5 +1,5 @@
 import type { FormApi } from "@formbar/core";
-import type { SchemaFieldInfo } from "@formbar/from-schema";
+import { type FormbarEnumOption, type SchemaFieldInfo, normalizeEnumOptions } from "@formbar/from-schema";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
@@ -18,10 +18,11 @@ import {
 	Textarea,
 	cn,
 } from "../ui";
+import { getEnumOptionKey, getEnumValueByKey, getSelectedEnumOptionKey } from "./enum-option-keys";
 
 interface FieldMeta {
 	readonly widget: string | undefined;
-	readonly enumValues: readonly string[] | undefined;
+	readonly enumOptions: readonly FormbarEnumOption[] | undefined;
 	readonly format: string | undefined;
 	readonly min: number | undefined;
 	readonly max: number | undefined;
@@ -36,7 +37,7 @@ function extractFieldMeta(field: SchemaFieldInfo): FieldMeta {
 	const meta = field.metadata;
 	return {
 		widget: meta?.widget,
-		enumValues: Array.isArray(meta?.enum) ? meta.enum.map(String) : undefined,
+		enumOptions: Array.isArray(meta?.enum) ? normalizeEnumOptions(meta) : undefined,
 		format: meta?.format,
 		min: meta?.minimum,
 		max: meta?.maximum,
@@ -104,8 +105,8 @@ function createFieldA11y(
 	};
 }
 
-function isGroupedField(field: SchemaFieldInfo, enumValues: readonly string[] | undefined): boolean {
-	return field.type === "enum" && Boolean(enumValues && enumValues.length <= 5);
+function isGroupedField(field: SchemaFieldInfo, enumOptions: readonly FormbarEnumOption[] | undefined): boolean {
+	return field.type === "enum" && Boolean(enumOptions && enumOptions.length <= 5);
 }
 
 function getControlA11yProps(a11y: FieldA11y) {
@@ -147,13 +148,13 @@ export function DemoFormField({ form, field, onChange }: DemoFormFieldProps) {
 	const generatedId = useId();
 
 	const meta = extractFieldMeta(field);
-	const { enumValues, title, description } = meta;
+	const { enumOptions, title, description } = meta;
 
 	const issues = form.getState().issues?.filter((i) => i.path.segments.join(".") === field.path) ?? [];
 	const hasError = issues.length > 0;
 	const constraints = buildConstraints(field, meta);
 	const a11y = createFieldA11y(field.path, generatedId, Boolean(description), hasError, constraints.length > 0);
-	const groupedField = isGroupedField(field, enumValues);
+	const groupedField = isGroupedField(field, enumOptions);
 
 	return (
 		<div className="flex flex-col gap-1.5">
@@ -192,45 +193,81 @@ export function DemoFormField({ form, field, onChange }: DemoFormFieldProps) {
 }
 
 function renderEnumControl(
-	field: SchemaFieldInfo,
 	value: unknown,
 	onChange: (v: unknown) => void,
-	enumValues: readonly string[],
+	enumOptions: readonly FormbarEnumOption[],
 	hasError: boolean,
 	a11y: FieldA11y,
 ): ReactNode {
-	if (enumValues.length <= 5) {
-		return (
-			<RadioGroup
-				id={a11y.controlId}
-				value={(value as string) ?? ""}
-				onValueChange={onChange}
-				className="flex flex-col gap-2"
-				aria-labelledby={a11y.labelId}
-				aria-describedby={a11y.describedBy}
-				aria-invalid={a11y.invalid || undefined}
-			>
-				{enumValues.map((opt) => (
-					<div key={opt} className="flex items-center gap-2">
-						<RadioGroupItem value={opt} id={`${a11y.controlId}-${toIdPart(opt)}`} />
-						<Label htmlFor={`${a11y.controlId}-${toIdPart(opt)}`} className="text-sm text-foreground">
-							{opt}
-						</Label>
-					</div>
-				))}
-			</RadioGroup>
-		);
+	const selectedKey = getSelectedEnumOptionKey(enumOptions, value);
+	const handleOptionChange = (optionKey: string) => {
+		const optionValue = getEnumValueByKey(enumOptions, optionKey);
+		if (optionValue !== undefined) onChange(optionValue);
+	};
+
+	if (enumOptions.length <= 5) {
+		return renderEnumRadioGroup(enumOptions, selectedKey, handleOptionChange, a11y);
 	}
+	return renderEnumSelect(enumOptions, selectedKey, handleOptionChange, hasError, a11y);
+}
+
+function renderEnumRadioGroup(
+	enumOptions: readonly FormbarEnumOption[],
+	selectedKey: string,
+	onChange: (optionKey: string) => void,
+	a11y: FieldA11y,
+): ReactNode {
+	return (
+		<RadioGroup
+			id={a11y.controlId}
+			value={selectedKey}
+			onValueChange={onChange}
+			className="flex flex-col gap-2"
+			aria-labelledby={a11y.labelId}
+			aria-describedby={a11y.describedBy}
+			aria-invalid={a11y.invalid || undefined}
+		>
+			{enumOptions.map((option, index) => renderEnumRadioOption(option, index, a11y.controlId))}
+		</RadioGroup>
+	);
+}
+
+function renderEnumRadioOption(option: FormbarEnumOption, index: number, controlId: string): ReactNode {
+	const optionKey = getEnumOptionKey(index);
+	const optionId = `${controlId}-${optionKey}`;
+	return (
+		<div key={optionKey} className="flex items-start gap-2">
+			<RadioGroupItem value={optionKey} id={optionId} disabled={option.disabled} />
+			<Label htmlFor={optionId} className="flex flex-col text-sm text-foreground">
+				<span>{option.label}</span>
+				{option.description && <span className="text-xs text-muted-foreground">{option.description}</span>}
+			</Label>
+		</div>
+	);
+}
+
+function renderEnumSelect(
+	enumOptions: readonly FormbarEnumOption[],
+	selectedKey: string,
+	onChange: (optionKey: string) => void,
+	hasError: boolean,
+	a11y: FieldA11y,
+): ReactNode {
 	const errorClass = hasError ? "border-destructive" : "";
 	return (
-		<Select {...getControlA11yProps(a11y)} value={(value as string) ?? ""} onValueChange={onChange}>
+		<Select {...getControlA11yProps(a11y)} value={selectedKey} onValueChange={onChange}>
 			<SelectTrigger className={cn(errorClass)}>
 				<SelectValue placeholder="Select..." />
 			</SelectTrigger>
 			<SelectContent>
-				{enumValues.map((opt) => (
-					<SelectItem key={opt} value={opt}>
-						{opt}
+				{enumOptions.map((option, index) => (
+					<SelectItem
+						key={getEnumOptionKey(index)}
+						value={getEnumOptionKey(index)}
+						disabled={option.disabled}
+						title={option.description}
+					>
+						{option.label}
 					</SelectItem>
 				))}
 			</SelectContent>
@@ -330,8 +367,8 @@ function renderControl(
 	a11y: FieldA11y,
 	hasError: boolean,
 ): ReactNode {
-	if (field.type === "enum" && meta.enumValues) {
-		return renderEnumControl(field, value, onChange, meta.enumValues, hasError, a11y);
+	if (field.type === "enum" && meta.enumOptions) {
+		return renderEnumControl(value, onChange, meta.enumOptions, hasError, a11y);
 	}
 	if (field.type === "boolean") {
 		return renderBooleanControl(value, onChange, a11y);

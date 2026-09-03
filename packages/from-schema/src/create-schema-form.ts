@@ -6,6 +6,7 @@ import { applyFormbarMetadata } from "./formbar-metadata.js";
 import { type LayoutMiddleware, applyLayoutMiddleware } from "./layout-middleware.js";
 import { compileLayout } from "./layout/layout-compiler.js";
 import type { LayoutNode } from "./layout/layout-types.js";
+import { applyZodFormbarEnumOptions } from "./zod-formbar-metadata.js";
 
 export interface CreateSchemaFormOptions {
 	/** Additional validators to include beyond the auto-detected schema validator */
@@ -48,7 +49,7 @@ export interface SchemaFormResult {
  */
 export function createSchemaForm(schema: unknown, options?: CreateSchemaFormOptions): SchemaFormResult {
 	const rawResult = ingestSchema(schema);
-	const result = applyFormbarMetadata(rawResult);
+	const result = applyZodFormbarEnumOptions(applyFormbarMetadata(rawResult), schema);
 	let layout = options?.layoutOverride ?? compileLayout(result);
 
 	if (options?.layoutMiddleware?.length) {
