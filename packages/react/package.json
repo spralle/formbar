@@ -22,7 +22,7 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@formbar/core": "workspace:*"
+		"@formbar/core": "^0.2.0"
 	},
 	"peerDependencies": {
 		"react": ">=18.0.0"
