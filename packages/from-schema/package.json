@@ -4,6 +4,11 @@
 	"type": "module",
 	"description": "Schema-to-form ingestion for JSON Schema and Zod with layout compilation",
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/surikaterna/formbar.git",
+		"directory": "packages/from-schema"
+	},
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
