@@ -2,7 +2,10 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+const demoBase = process.env.FORMBAR_DEMO_BASE || "/";
+
 export default defineConfig({
+	base: demoBase,
 	plugins: [react(), tailwindcss()],
 	resolve: {
 		alias: {
