@@ -1,52 +1,42 @@
 {
-  "name": "@formbar/core",
-  "version": "0.1.0",
-  "type": "module",
-  "description": "Headless form state engine with validation, transforms, and middleware",
-  "license": "MIT",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
-    "./path": {
-      "types": "./dist/path.entry.d.ts",
-      "import": "./dist/path.entry.js",
-      "require": "./dist/path.entry.cjs"
-    },
-    "./transforms": {
-      "types": "./dist/transforms.entry.d.ts",
-      "import": "./dist/transforms.entry.js",
-      "require": "./dist/transforms.entry.cjs"
-    },
-    "./validation": {
-      "types": "./dist/validation.entry.d.ts",
-      "import": "./dist/validation.entry.js",
-      "require": "./dist/validation.entry.cjs"
-    }
-  },
-  "files": ["dist", "src"],
-  "sideEffects": false,
-  "scripts": {
-    "build": "tsc --noEmit",
-    "build:dist": "tsup",
-    "test": "vitest run"
-  },
-  "peerDependencies": {
-    "@arbitre/core": ">=0.1.0",
-    "kuery": ">=0.1.0"
-  },
-  "peerDependenciesMeta": {
-    "@arbitre/core": { "optional": true },
-    "kuery": { "optional": true }
-  },
-  "devDependencies": {
-    "@arbitre/core": "file:../../../arbitre/packages/core",
-    "kuery": "file:../../../kuery",
-    "@formbar/from-schema": "workspace:*"
-  }
+	"name": "@formbar/core",
+	"version": "0.2.0",
+	"type": "module",
+	"description": "Headless form state engine with validation, transforms, and middleware",
+	"license": "MIT",
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		},
+		"./path": {
+			"types": "./dist/path.entry.d.ts",
+			"import": "./dist/path.entry.js",
+			"require": "./dist/path.entry.cjs"
+		},
+		"./transforms": {
+			"types": "./dist/transforms.entry.d.ts",
+			"import": "./dist/transforms.entry.js",
+			"require": "./dist/transforms.entry.cjs"
+		},
+		"./validation": {
+			"types": "./dist/validation.entry.d.ts",
+			"import": "./dist/validation.entry.js",
+			"require": "./dist/validation.entry.cjs"
+		}
+	},
+	"files": ["dist", "src"],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsc --noEmit",
+		"build:dist": "tsup",
+		"test": "vitest run"
+	},
+	"devDependencies": {
+		"@formbar/from-schema": "workspace:*"
+	}
 }

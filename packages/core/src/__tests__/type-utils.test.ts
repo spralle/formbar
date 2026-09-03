@@ -42,12 +42,12 @@ type _V4 = Assert<IsEqual<DeepValue<{ a?: { b: string } }, "a.b">, string | unde
 
 // --- Depth limit test (15 levels deep — must not crash tsc) ---
 type Deep15 = {
-  a: { a: { a: { a: { a: { a: { a: { a: { a: { a: { a: { a: { a: { a: { a: string } } } } } } } } } } } } } };
+	a: { a: { a: { a: { a: { a: { a: { a: { a: { a: { a: { a: { a: { a: { a: string } } } } } } } } } } } } } };
 };
 type _KDeep = DeepKeys<Deep15>; // Should compile without hanging
 
 describe("type-utils", () => {
-  it("compiles without errors (runtime placeholder)", () => {
-    expect(true).toBe(true);
-  });
+	it("compiles without errors (runtime placeholder)", () => {
+		expect(true).toBe(true);
+	});
 });

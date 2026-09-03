@@ -1,26 +1,27 @@
 import type { ValidatorFn } from "@formbar/core";
 import { createStandardSchemaValidator, isStandardSchemaLike } from "@formbar/core";
-import { ingestSchema, type JsonSchema, type SchemaFieldInfo, type SchemaMetadata } from "@scheman/core";
+import { type JsonSchema, type SchemaFieldInfo, type SchemaMetadata, ingestSchema } from "@scheman/core";
 import { createJsonSchemaValidator, isJsonSchema } from "./adapters/json-schema-validator.js";
+import { applyFormbarMetadata } from "./formbar-metadata.js";
+import { type LayoutMiddleware, applyLayoutMiddleware } from "./layout-middleware.js";
 import { compileLayout } from "./layout/layout-compiler.js";
 import type { LayoutNode } from "./layout/layout-types.js";
-import { applyLayoutMiddleware, type LayoutMiddleware } from "./layout-middleware.js";
 
 export interface CreateSchemaFormOptions {
-  /** Additional validators to include beyond the auto-detected schema validator */
-  readonly validators?: readonly ValidatorFn[] | undefined;
-  /** Override the auto-compiled layout with a custom LayoutNode tree */
-  readonly layoutOverride?: LayoutNode | undefined;
-  /** Middleware pipeline applied to the compiled layout tree */
-  readonly layoutMiddleware?: readonly LayoutMiddleware[] | undefined;
+	/** Additional validators to include beyond the auto-detected schema validator */
+	readonly validators?: readonly ValidatorFn[] | undefined;
+	/** Override the auto-compiled layout with a custom LayoutNode tree */
+	readonly layoutOverride?: LayoutNode | undefined;
+	/** Middleware pipeline applied to the compiled layout tree */
+	readonly layoutMiddleware?: readonly LayoutMiddleware[] | undefined;
 }
 
 export interface SchemaFormResult {
-  readonly fields: readonly SchemaFieldInfo[];
-  readonly layout: LayoutNode;
-  readonly metadata: SchemaMetadata;
-  readonly validators: readonly ValidatorFn[];
-  readonly defaults: Readonly<Record<string, unknown>>;
+	readonly fields: readonly SchemaFieldInfo[];
+	readonly layout: LayoutNode;
+	readonly metadata: SchemaMetadata;
+	readonly validators: readonly ValidatorFn[];
+	readonly defaults: Readonly<Record<string, unknown>>;
 }
 
 /**
@@ -46,28 +47,29 @@ export interface SchemaFormResult {
  * ```
  */
 export function createSchemaForm(schema: unknown, options?: CreateSchemaFormOptions): SchemaFormResult {
-  const result = ingestSchema(schema);
-  let layout = options?.layoutOverride ?? compileLayout(result);
+	const rawResult = ingestSchema(schema);
+	const result = applyFormbarMetadata(rawResult);
+	let layout = options?.layoutOverride ?? compileLayout(result);
 
-  if (options?.layoutMiddleware?.length) {
-    const fieldInfoMap = new Map<string, SchemaFieldInfo>(result.fields.map((f: SchemaFieldInfo) => [f.path, f]));
-    layout = applyLayoutMiddleware(layout, options.layoutMiddleware, fieldInfoMap);
-  }
+	if (options?.layoutMiddleware?.length) {
+		const fieldInfoMap = new Map<string, SchemaFieldInfo>(result.fields.map((f: SchemaFieldInfo) => [f.path, f]));
+		layout = applyLayoutMiddleware(layout, options.layoutMiddleware, fieldInfoMap);
+	}
 
-  const validators: ValidatorFn[] = [];
-  if (isJsonSchema(schema)) {
-    validators.push(createJsonSchemaValidator(schema as JsonSchema));
-  } else if (isStandardSchemaLike(schema)) {
-    validators.push(createStandardSchemaValidator(schema));
-  }
-  if (options?.validators) {
-    validators.push(...options.validators);
-  }
-  const defaults: Record<string, unknown> = {};
-  for (const f of result.fields) {
-    if (f.defaultValue !== undefined) {
-      defaults[f.path] = f.defaultValue;
-    }
-  }
-  return { fields: result.fields, metadata: result.metadata, layout, validators, defaults };
+	const validators: ValidatorFn[] = [];
+	if (isJsonSchema(schema)) {
+		validators.push(createJsonSchemaValidator(schema as JsonSchema));
+	} else if (isStandardSchemaLike(schema)) {
+		validators.push(createStandardSchemaValidator(schema));
+	}
+	if (options?.validators) {
+		validators.push(...options.validators);
+	}
+	const defaults: Record<string, unknown> = {};
+	for (const f of result.fields) {
+		if (f.defaultValue !== undefined) {
+			defaults[f.path] = f.defaultValue;
+		}
+	}
+	return { fields: result.fields, metadata: result.metadata, layout, validators, defaults };
 }

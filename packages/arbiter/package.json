@@ -1,0 +1,35 @@
+{
+	"name": "@formbar/arbiter",
+	"version": "0.2.0",
+	"type": "module",
+	"description": "Arbiter rule engine bridge for @formbar/core — declarative UI governance via production rules",
+	"license": "MIT",
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"files": ["dist", "src"],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsc --noEmit",
+		"build:dist": "tsup",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@formbar/core": "workspace:*"
+	},
+	"peerDependencies": {
+		"@arbitre/core": ">=0.1.0",
+		"kuery": ">=2.0.0"
+	},
+	"devDependencies": {
+		"@arbitre/core": "^0.2.0",
+		"kuery": "^2.0.0"
+	}
+}

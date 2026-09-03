@@ -1,37 +1,39 @@
 {
-  "name": "@formbar/from-schema",
-  "version": "0.1.0",
-  "type": "module",
-  "description": "Schema-to-form ingestion for JSON Schema and Zod with layout compilation",
-  "license": "MIT",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
-  },
-  "files": ["dist", "src"],
-  "sideEffects": false,
-  "scripts": {
-    "build": "tsc --noEmit",
-    "build:dist": "tsup",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "@formbar/core": "workspace:*",
-    "@scheman/core": "workspace:*"
-  },
-  "peerDependencies": {
-    "zod": ">=3.0.0 || >=4.0.0"
-  },
-  "peerDependenciesMeta": {
-    "zod": { "optional": true }
-  },
-  "devDependencies": {
-    "zod": "^4.0.0"
-  }
+	"name": "@formbar/from-schema",
+	"version": "0.2.0",
+	"type": "module",
+	"description": "Schema-to-form ingestion for JSON Schema and Zod with layout compilation",
+	"license": "MIT",
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"files": ["dist", "src"],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsc --noEmit",
+		"build:dist": "tsup",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@formbar/core": "workspace:*",
+		"@scheman/core": "^0.1.0"
+	},
+	"peerDependencies": {
+		"zod": ">=3.0.0 || >=4.0.0"
+	},
+	"peerDependenciesMeta": {
+		"zod": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"zod": "^4.0.0"
+	}
 }
