@@ -16,10 +16,13 @@
       "name": "@formbar/demos",
       "version": "0.0.0",
       "dependencies": {
+        "@arbitre/core": "^0.2.0",
+        "@formbar/arbiter": "workspace:*",
         "@formbar/core": "workspace:*",
         "@formbar/from-schema": "workspace:*",
         "@formbar/react": "workspace:*",
         "@formbar/react-schema": "workspace:*",
+        "kuery": "^2.0.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
       },
@@ -34,9 +37,9 @@
     },
     "packages/arbiter": {
       "name": "@formbar/arbiter",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
-        "@formbar/core": "^0.2.0",
+        "@formbar/core": "^0.2.1",
       },
       "devDependencies": {
         "@arbitre/core": "^0.2.0",
@@ -49,16 +52,16 @@
     },
     "packages/core": {
       "name": "@formbar/core",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "devDependencies": {
-        "@formbar/from-schema": "^0.2.0",
+        "@formbar/from-schema": "^0.2.1",
       },
     },
     "packages/from-schema": {
       "name": "@formbar/from-schema",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
-        "@formbar/core": "^0.2.0",
+        "@formbar/core": "^0.2.1",
         "@scheman/core": "^0.1.0",
       },
       "devDependencies": {
@@ -73,9 +76,9 @@
     },
     "packages/react": {
       "name": "@formbar/react",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
-        "@formbar/core": "^0.2.0",
+        "@formbar/core": "^0.2.1",
       },
       "devDependencies": {
         "@types/react": "^19.0.0",
@@ -87,11 +90,11 @@
     },
     "packages/react-schema": {
       "name": "@formbar/react-schema",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
-        "@formbar/core": "^0.2.0",
-        "@formbar/from-schema": "^0.2.0",
-        "@formbar/react": "^0.2.0",
+        "@formbar/core": "^0.2.1",
+        "@formbar/from-schema": "^0.2.1",
+        "@formbar/react": "^0.2.1",
       },
       "devDependencies": {
         "@types/react": "^19.0.0",

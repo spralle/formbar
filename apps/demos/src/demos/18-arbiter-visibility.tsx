@@ -1,3 +1,4 @@
+import { createArbiterPlugin } from "@formbar/arbiter";
 import { useForm } from "@formbar/react";
 import { DemoShell } from "../renderers/DemoShell";
 import { Card, CardContent, CardHeader, CardTitle, cn } from "../ui";
@@ -52,7 +53,7 @@ export function ArbiterVisibilityDemo() {
 	const form = useForm<FormData, UiState>({
 		initialData: { country: "", state: "", province: "", region: "" },
 		initialUiState: { showState: false, showProvince: false },
-		arbiterRules,
+		plugins: [createArbiterPlugin({ rules: arbiterRules })],
 	});
 
 	const { data, uiState } = form.getState();

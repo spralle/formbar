@@ -1,3 +1,4 @@
+import { createArbiterPlugin } from "@formbar/arbiter";
 import { useForm } from "@formbar/react";
 import { useState } from "react";
 import { DemoShell } from "../renderers/DemoShell";
@@ -44,7 +45,7 @@ export function ArbiterValidationGatingDemo() {
 	const form = useForm<FormData, UiState>({
 		initialData: { name: "", email: "", age: 0, agreeToTerms: false },
 		initialUiState: { canSubmit: false },
-		arbiterRules,
+		plugins: [createArbiterPlugin({ rules: arbiterRules })],
 	});
 
 	const { data, uiState } = form.getState();

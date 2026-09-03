@@ -1,3 +1,4 @@
+import { createArbiterPlugin } from "@formbar/arbiter";
 import { useForm } from "@formbar/react";
 import { DemoShell } from "../renderers/DemoShell";
 import { Card, CardContent, CardHeader, CardTitle, cn } from "../ui";
@@ -80,7 +81,7 @@ export function ArbiterDynamicSectionsDemo() {
 			conditions: "",
 		},
 		initialUiState: { showAutoSection: false, showHomeSection: false, showLifeSection: false },
-		arbiterRules,
+		plugins: [createArbiterPlugin({ rules: arbiterRules })],
 	});
 
 	const { data, uiState } = form.getState();
