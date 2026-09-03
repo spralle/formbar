@@ -1,6 +1,6 @@
 {
 	"name": "@formbar/react-schema",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"type": "module",
 	"description": "Schema-driven React form rendering — layout trees, renderers, and useSchemaForm hook",
 	"license": "MIT",
@@ -22,9 +22,9 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@formbar/core": "^0.2.0",
-		"@formbar/react": "^0.2.0",
-		"@formbar/from-schema": "^0.2.0"
+		"@formbar/core": "^0.2.1",
+		"@formbar/react": "^0.2.1",
+		"@formbar/from-schema": "^0.2.1"
 	},
 	"peerDependencies": {
 		"react": ">=18.0.0"
