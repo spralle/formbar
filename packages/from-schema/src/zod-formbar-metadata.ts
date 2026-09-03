@@ -20,24 +20,25 @@ function collectZodEnumMetadata(
 	schema: unknown,
 	path: string,
 	metadataByPath: Map<string, ZodEnumMetadata>,
-	seen: Set<object>,
+	visiting: Set<object>,
 ): void {
-	if (!isRecord(schema) || seen.has(schema)) return;
-	seen.add(schema);
+	if (!isRecord(schema) || visiting.has(schema)) return;
+	visiting.add(schema);
 
 	const def = getZodDef(schema);
 	const enumOptions = getInlineFormbar(schema, def)?.enumOptions;
 	const enumValues = getZodEnumValues(def);
 	if (path && (enumOptions !== undefined || enumValues)) {
-		metadataByPath.set(path, createZodEnumMetadata(enumOptions, enumValues));
+		mergeCollectedMetadata(metadataByPath, path, createZodEnumMetadata(enumOptions, enumValues));
 	}
 
 	for (const [key, child] of getZodObjectShape(def)) {
-		collectZodEnumMetadata(child, path ? `${path}.${key}` : key, metadataByPath, seen);
+		collectZodEnumMetadata(child, path ? `${path}.${key}` : key, metadataByPath, visiting);
 	}
 
 	const inner = getZodInnerSchema(def);
-	if (inner) collectZodEnumMetadata(inner, path, metadataByPath, seen);
+	if (inner) collectZodEnumMetadata(inner, path, metadataByPath, visiting);
+	visiting.delete(schema);
 }
 
 function mergeZodEnumMetadata(field: SchemaFieldInfo, zodMetadata: ZodEnumMetadata | undefined): SchemaFieldInfo {
@@ -62,6 +63,19 @@ function createZodEnumMetadata(enumOptions: unknown, enumValues: readonly unknow
 		...(enumOptions !== undefined ? { enumOptions } : {}),
 		...(enumValues ? { enumValues } : {}),
 	};
+}
+
+function mergeCollectedMetadata(
+	metadataByPath: Map<string, ZodEnumMetadata>,
+	path: string,
+	next: ZodEnumMetadata,
+): void {
+	const previous = metadataByPath.get(path);
+	metadataByPath.set(path, {
+		...(next.enumOptions !== undefined ? { enumOptions: next.enumOptions } : {}),
+		...(next.enumValues ? { enumValues: next.enumValues } : {}),
+		...previous,
+	});
 }
 
 function getZodDef(schema: Record<string, unknown>): Record<string, unknown> | undefined {

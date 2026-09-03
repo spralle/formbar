@@ -72,4 +72,55 @@ describe("formbar enumOptions metadata", () => {
 		expect(result.fields[0]?.metadata?.enumOptions).toEqual([{ value: "any", label: "Any" }]);
 		expect(result.fields[0]?.metadata?.enum).toEqual(["any", "documents"]);
 	});
+
+	test("preserves Zod wrapper enumOptions with inner enum values", () => {
+		const result = createSchemaForm(
+			z.object({
+				scope: z
+					.enum(["any", "documents"])
+					.optional()
+					.meta({
+						formbar: {
+							enumOptions: [{ value: "documents", label: "Documents" }],
+						},
+					}),
+			}),
+		);
+
+		const field = result.fields.find((item) => item.path === "scope");
+		expect(field?.required).toBe(false);
+		expect(field?.metadata?.enum).toEqual(["any", "documents"]);
+		expect(field?.metadata?.enumOptions).toEqual([{ value: "documents", label: "Documents" }]);
+		expect(normalizeEnumOptions(field?.metadata)).toEqual([
+			{ value: "any", label: "any" },
+			{ value: "documents", label: "Documents" },
+		]);
+	});
+
+	test("applies reused Zod enum metadata to each field path", () => {
+		const sharedScope = z.enum(["any", "documents"]).meta({
+			formbar: {
+				enumOptions: [{ value: "any", label: "Any" }],
+			},
+		});
+		const result = createSchemaForm(
+			z.object({
+				primaryScope: sharedScope,
+				secondaryScope: sharedScope,
+			}),
+		);
+
+		const fields = result.fields.filter((field) => field.path.endsWith("Scope"));
+		expect(fields).toHaveLength(2);
+		expect(fields.map((field) => normalizeEnumOptions(field.metadata))).toEqual([
+			[
+				{ value: "any", label: "Any" },
+				{ value: "documents", label: "documents" },
+			],
+			[
+				{ value: "any", label: "Any" },
+				{ value: "documents", label: "documents" },
+			],
+		]);
+	});
 });
