@@ -32,7 +32,12 @@ jobs:
         run: bun run test
 
       - name: Build packages
-        run: bun run build
+        run: |
+          bun run --filter @formbar/core build:dist
+          bun run --filter @formbar/from-schema build:dist
+          bun run --filter @formbar/react build:dist
+          bun run --filter @formbar/arbiter build:dist
+          bun run --filter @formbar/react-schema build:dist
 
       - name: Build demos
         run: bun run --filter @formbar/demos build
