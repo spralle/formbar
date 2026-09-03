@@ -1,6 +1,12 @@
 // TODO: Replace with proper UI components. These are minimal shims for demo purposes.
-import type { HTMLAttributes, InputHTMLAttributes, LabelHTMLAttributes, ReactNode } from "react";
-import { createElement, forwardRef } from "react";
+import type {
+	ChangeEvent,
+	DetailsHTMLAttributes,
+	HTMLAttributes,
+	InputHTMLAttributes,
+	LabelHTMLAttributes,
+} from "react";
+import { createContext, createElement, forwardRef, useContext, useId } from "react";
 
 export function cn(...classes: (string | undefined | null | false)[]): string {
 	return classes.filter(Boolean).join(" ");
@@ -79,6 +85,65 @@ export function Checkbox({ className, ...props }: InputHTMLAttributes<HTMLInputE
 	return createElement("input", { type: "checkbox", className, ...props });
 }
 
+type SwitchProps = Omit<InputHTMLAttributes<HTMLInputElement>, "checked" | "onChange" | "type"> & {
+	checked?: boolean;
+	onCheckedChange?: (checked: boolean) => void;
+};
+
+export function Switch({ checked, className, onCheckedChange, ...props }: SwitchProps) {
+	return createElement("input", {
+		role: "switch",
+		type: "checkbox",
+		checked,
+		className: cn("h-4 w-8", className),
+		onChange: (event: ChangeEvent<HTMLInputElement>) => onCheckedChange?.(event.currentTarget.checked),
+		...props,
+	});
+}
+
+type RadioGroupContextValue = {
+	readonly name: string;
+	readonly value: string | undefined;
+	readonly onValueChange: ((value: string) => void) | undefined;
+};
+
+const RadioGroupContext = createContext<RadioGroupContextValue | null>(null);
+
+type RadioGroupProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & {
+	value?: string;
+	onValueChange?: (value: string) => void;
+	name?: string;
+};
+
+export function RadioGroup({ children, className, name, onValueChange, value, ...props }: RadioGroupProps) {
+	const generatedName = useId();
+	const contextValue = { name: name ?? generatedName, value, onValueChange };
+	return createElement(
+		RadioGroupContext.Provider,
+		{ value: contextValue },
+		createElement("div", { role: "radiogroup", className, ...props }, children),
+	);
+}
+
+type RadioGroupItemProps = Omit<InputHTMLAttributes<HTMLInputElement>, "checked" | "onChange" | "type"> & {
+	value: string;
+};
+
+export function RadioGroupItem({ className, value, ...props }: RadioGroupItemProps) {
+	const group = useContext(RadioGroupContext);
+	return createElement("input", {
+		type: "radio",
+		name: group?.name,
+		value,
+		checked: group ? group.value === value : undefined,
+		className,
+		onChange: (event: ChangeEvent<HTMLInputElement>) => {
+			if (event.currentTarget.checked) group?.onValueChange?.(value);
+		},
+		...props,
+	});
+}
+
 export function Slider({
 	className,
 	...props
@@ -144,4 +209,52 @@ export function TabsContent({
 	...props
 }: HTMLAttributes<HTMLDivElement> & { value: string }) {
 	return createElement("div", { className, ...props }, children);
+}
+
+type AccordionContextValue = {
+	readonly defaultOpenValues: readonly string[];
+};
+
+const AccordionContext = createContext<AccordionContextValue>({ defaultOpenValues: [] });
+
+type AccordionProps = HTMLAttributes<HTMLDivElement> & {
+	type?: "single" | "multiple";
+	defaultValue?: string | string[];
+	value?: string | string[];
+};
+
+function normalizeAccordionValue(value: string | string[] | undefined): string[] {
+	if (Array.isArray(value)) return value;
+	return value ? [value] : [];
+}
+
+export function Accordion({ children, className, defaultValue, value, ...props }: AccordionProps) {
+	const defaultOpenValues = normalizeAccordionValue(value ?? defaultValue);
+	return createElement(
+		AccordionContext.Provider,
+		{ value: { defaultOpenValues } },
+		createElement("div", { className: cn("flex flex-col gap-2", className), ...props }, children),
+	);
+}
+
+export function AccordionItem({ children, className, value, ...props }: DetailsHTMLAttributes<HTMLDetailsElement>) {
+	const { defaultOpenValues } = useContext(AccordionContext);
+	const itemValue = typeof value === "string" ? value : undefined;
+	return createElement(
+		"details",
+		{ open: itemValue ? defaultOpenValues.includes(itemValue) : undefined, className, ...props },
+		children,
+	);
+}
+
+export function AccordionTrigger({ children, className, ...props }: HTMLAttributes<HTMLElement>) {
+	return createElement(
+		"summary",
+		{ className: cn("cursor-pointer text-sm font-semibold", className), ...props },
+		children,
+	);
+}
+
+export function AccordionContent({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
+	return createElement("div", { className: cn("pt-3", className), ...props }, children);
 }

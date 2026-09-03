@@ -34,12 +34,12 @@
     },
     "packages/arbiter": {
       "name": "@formbar/arbiter",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "@formbar/core": "workspace:*",
       },
       "devDependencies": {
-        "@arbitre/core": "link:@arbitre/core",
+        "@arbitre/core": "^0.2.0",
         "kuery": "^2.0.0",
       },
       "peerDependencies": {
@@ -49,14 +49,14 @@
     },
     "packages/core": {
       "name": "@formbar/core",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "devDependencies": {
         "@formbar/from-schema": "workspace:*",
       },
     },
     "packages/from-schema": {
       "name": "@formbar/from-schema",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "@formbar/core": "workspace:*",
         "@scheman/core": "^0.1.0",
@@ -73,7 +73,7 @@
     },
     "packages/react": {
       "name": "@formbar/react",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "@formbar/core": "workspace:*",
       },
@@ -87,7 +87,7 @@
     },
     "packages/react-schema": {
       "name": "@formbar/react-schema",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "@formbar/core": "workspace:*",
         "@formbar/from-schema": "workspace:*",
@@ -103,7 +103,7 @@
     },
   },
   "packages": {
-    "@arbitre/core": ["@arbitre/core@0.1.0", "", { "peerDependencies": { "kuery": ">=2.0.0" } }, "sha512-4LxP2Iu5wDRgo9cJd4ffLjQoUMPnehT8fuHs4rMqh7SuzwlnZt96AWDj4UFWlqPFmECS0NOhDG8fWZTaTEg5uA=="],
+    "@arbitre/core": ["@arbitre/core@0.2.0", "", { "peerDependencies": { "kuery": ">=2.0.0" } }, "sha512-AO/1jcwxfvZX2XK7WBOxQ/7zE6TDkcTTtTB3nxJVYxJW4KkR3VR2hqliriYlDce/JfnKV7EV6bhP9pn0qUlsJQ=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
 
