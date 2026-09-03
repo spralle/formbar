@@ -1,6 +1,7 @@
 import type { FormApi } from "@formbar/core";
 import type { SchemaFieldInfo } from "@formbar/from-schema";
-import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
 	Badge,
 	Input,
@@ -53,27 +54,73 @@ interface DemoFormFieldProps {
 	readonly onChange: (path: string, value: unknown) => void;
 }
 
-function buildConstraints(
-	field: SchemaFieldInfo,
-	min: number | undefined,
-	max: number | undefined,
-	minLength: number | undefined,
-	maxLength: number | undefined,
-	pattern: string | undefined,
-	format: string | undefined,
-): string[] {
+interface FieldA11y {
+	readonly controlId: string;
+	readonly labelId: string;
+	readonly descriptionId: string;
+	readonly constraintsId: string;
+	readonly errorId: string;
+	readonly describedBy: string | undefined;
+	readonly invalid: boolean;
+}
+
+function buildConstraints(field: SchemaFieldInfo, meta: FieldMeta): string[] {
 	const constraints: string[] = [];
 	if (field.required) constraints.push("Required");
-	if (minLength) constraints.push(`Min ${minLength} chars`);
-	if (maxLength) constraints.push(`Max ${maxLength} chars`);
-	if (pattern) constraints.push(`Pattern: ${pattern}`);
-	if (min != null && max != null && field.type !== "number" && field.type !== "integer")
-		constraints.push(`${min}–${max}`);
-	if (format) constraints.push(format);
+	if (meta.minLength) constraints.push(`Min ${meta.minLength} chars`);
+	if (meta.maxLength) constraints.push(`Max ${meta.maxLength} chars`);
+	if (meta.pattern) constraints.push(`Pattern: ${meta.pattern}`);
+	if (meta.min != null && meta.max != null && field.type !== "number" && field.type !== "integer")
+		constraints.push(`${meta.min}–${meta.max}`);
+	if (meta.format) constraints.push(meta.format);
 	return constraints;
 }
 
-export function DemoFormField({ form, field, onChange }: DemoFormFieldProps) {
+function toIdPart(value: string): string {
+	return value.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-|-$/g, "") || "field";
+}
+
+function createFieldA11y(
+	fieldPath: string,
+	generatedId: string,
+	hasDescription: boolean,
+	hasError: boolean,
+	hasConstraints: boolean,
+): FieldA11y {
+	const baseId = `demo-field-${toIdPart(fieldPath)}-${toIdPart(generatedId)}`;
+	const descriptionId = `${baseId}-description`;
+	const constraintsId = `${baseId}-constraints`;
+	const errorId = `${baseId}-error`;
+	const describedByIds = [hasDescription ? descriptionId : undefined, hasError ? errorId : undefined];
+	if (!hasError && hasConstraints) describedByIds.push(constraintsId);
+	return {
+		controlId: baseId,
+		labelId: `${baseId}-label`,
+		descriptionId,
+		constraintsId,
+		errorId,
+		describedBy: describedByIds.filter(Boolean).join(" ") || undefined,
+		invalid: hasError,
+	};
+}
+
+function isGroupedField(field: SchemaFieldInfo, enumValues: readonly string[] | undefined): boolean {
+	return field.type === "enum" && Boolean(enumValues && enumValues.length <= 5);
+}
+
+function getControlA11yProps(a11y: FieldA11y) {
+	return {
+		id: a11y.controlId,
+		"aria-describedby": a11y.describedBy,
+		"aria-invalid": a11y.invalid || undefined,
+	} as const;
+}
+
+function useDemoFieldValue(
+	form: FormApi,
+	field: SchemaFieldInfo,
+	onChange: (path: string, value: unknown) => void,
+): readonly [unknown, (newValue: unknown) => void] {
 	const fieldApiRef = useRef(form.field(field.path));
 	const fieldApi = fieldApiRef.current;
 	const [value, setValue] = useState<unknown>(() => fieldApi.get());
@@ -92,45 +139,53 @@ export function DemoFormField({ form, field, onChange }: DemoFormFieldProps) {
 		},
 		[fieldApi, field.path, onChange],
 	);
+	return [value, handleChange];
+}
 
-	const { widget, enumValues, format, min, max, minLength, maxLength, pattern, title, description } =
-		extractFieldMeta(field);
+export function DemoFormField({ form, field, onChange }: DemoFormFieldProps) {
+	const [value, handleChange] = useDemoFieldValue(form, field, onChange);
+	const generatedId = useId();
+
+	const meta = extractFieldMeta(field);
+	const { enumValues, title, description } = meta;
 
 	const issues = form.getState().issues?.filter((i) => i.path.segments.join(".") === field.path) ?? [];
 	const hasError = issues.length > 0;
-
-	const constraints = buildConstraints(field, min, max, minLength, maxLength, pattern, format);
+	const constraints = buildConstraints(field, meta);
+	const a11y = createFieldA11y(field.path, generatedId, Boolean(description), hasError, constraints.length > 0);
+	const groupedField = isGroupedField(field, enumValues);
 
 	return (
 		<div className="flex flex-col gap-1.5">
 			<div className="flex items-center gap-2">
-				<Label className="text-sm font-medium text-foreground">{title}</Label>
+				<Label
+					id={a11y.labelId}
+					htmlFor={groupedField ? undefined : a11y.controlId}
+					className="text-sm font-medium text-foreground"
+				>
+					{title}
+				</Label>
 				{field.required && (
 					<Badge variant="secondary" className="text-[10px] px-1 py-0">
 						Required
 					</Badge>
 				)}
 			</div>
-			{description && <p className="text-xs text-muted-foreground">{description}</p>}
-			<div>
-				{renderControl(
-					field,
-					value,
-					handleChange,
-					widget,
-					enumValues,
-					format,
-					min,
-					max,
-					minLength,
-					maxLength,
-					pattern,
-					hasError,
-				)}
-			</div>
-			{hasError && <p className="text-xs text-destructive">{issues[0]?.message}</p>}
+			{description && (
+				<p id={a11y.descriptionId} className="text-xs text-muted-foreground">
+					{description}
+				</p>
+			)}
+			<div>{renderControl(field, value, handleChange, meta, a11y, hasError)}</div>
+			{hasError && (
+				<p id={a11y.errorId} className="text-xs text-destructive">
+					{issues[0]?.message}
+				</p>
+			)}
 			{!hasError && constraints.length > 0 && (
-				<p className="text-xs text-muted-foreground">{constraints.join(" · ")}</p>
+				<p id={a11y.constraintsId} className="text-xs text-muted-foreground">
+					{constraints.join(" · ")}
+				</p>
 			)}
 		</div>
 	);
@@ -142,14 +197,23 @@ function renderEnumControl(
 	onChange: (v: unknown) => void,
 	enumValues: readonly string[],
 	hasError: boolean,
-): React.ReactNode {
+	a11y: FieldA11y,
+): ReactNode {
 	if (enumValues.length <= 5) {
 		return (
-			<RadioGroup value={(value as string) ?? ""} onValueChange={onChange} className="flex flex-col gap-2">
+			<RadioGroup
+				id={a11y.controlId}
+				value={(value as string) ?? ""}
+				onValueChange={onChange}
+				className="flex flex-col gap-2"
+				aria-labelledby={a11y.labelId}
+				aria-describedby={a11y.describedBy}
+				aria-invalid={a11y.invalid || undefined}
+			>
 				{enumValues.map((opt) => (
 					<div key={opt} className="flex items-center gap-2">
-						<RadioGroupItem value={opt} id={`${field.path}-${opt}`} />
-						<Label htmlFor={`${field.path}-${opt}`} className="text-sm text-foreground">
+						<RadioGroupItem value={opt} id={`${a11y.controlId}-${toIdPart(opt)}`} />
+						<Label htmlFor={`${a11y.controlId}-${toIdPart(opt)}`} className="text-sm text-foreground">
 							{opt}
 						</Label>
 					</div>
@@ -159,7 +223,7 @@ function renderEnumControl(
 	}
 	const errorClass = hasError ? "border-destructive" : "";
 	return (
-		<Select value={(value as string) ?? ""} onValueChange={onChange}>
+		<Select {...getControlA11yProps(a11y)} value={(value as string) ?? ""} onValueChange={onChange}>
 			<SelectTrigger className={cn(errorClass)}>
 				<SelectValue placeholder="Select..." />
 			</SelectTrigger>
@@ -177,35 +241,34 @@ function renderEnumControl(
 function renderStringControl(
 	value: unknown,
 	onChange: (v: unknown) => void,
-	widget: string | undefined,
-	format: string | undefined,
-	minLength: number | undefined,
-	maxLength: number | undefined,
-	pattern: string | undefined,
+	meta: FieldMeta,
 	hasError: boolean,
-): React.ReactNode {
+	a11y: FieldA11y,
+): ReactNode {
 	const errorClass = hasError ? "border-destructive" : "";
-	if (widget === "textarea" || (maxLength != null && maxLength > 200)) {
+	if (meta.widget === "textarea" || (meta.maxLength != null && meta.maxLength > 200)) {
 		return (
 			<Textarea
+				{...getControlA11yProps(a11y)}
 				value={(value as string) ?? ""}
 				onChange={(e) => onChange(e.target.value)}
 				className={cn(errorClass)}
-				maxLength={maxLength}
+				maxLength={meta.maxLength}
 				rows={4}
 			/>
 		);
 	}
-	const inputType = format === "email" ? "email" : format === "uri" ? "url" : "text";
+	const inputType = meta.format === "email" ? "email" : meta.format === "uri" ? "url" : "text";
 	return (
 		<Input
+			{...getControlA11yProps(a11y)}
 			type={inputType}
 			value={(value as string) ?? ""}
 			onChange={(e) => onChange(e.target.value)}
 			className={cn(errorClass)}
-			minLength={minLength}
-			maxLength={maxLength}
-			pattern={pattern}
+			minLength={meta.minLength}
+			maxLength={meta.maxLength}
+			pattern={meta.pattern}
 		/>
 	);
 }
@@ -217,11 +280,13 @@ function renderNumberControl(
 	min: number | undefined,
 	max: number | undefined,
 	hasError: boolean,
-): React.ReactNode {
+	a11y: FieldA11y,
+): ReactNode {
 	if (min != null && max != null) {
 		return (
 			<div className="flex items-center gap-3">
 				<Slider
+					{...getControlA11yProps(a11y)}
 					min={min}
 					max={max}
 					step={field.type === "integer" ? 1 : 0.1}
@@ -241,6 +306,7 @@ function renderNumberControl(
 	};
 	return (
 		<Input
+			{...getControlA11yProps(a11y)}
 			type="number"
 			step={step}
 			min={min}
@@ -252,38 +318,37 @@ function renderNumberControl(
 	);
 }
 
-function renderBooleanControl(value: unknown, onChange: (v: unknown) => void): React.ReactNode {
-	return <Switch checked={Boolean(value)} onCheckedChange={onChange} />;
+function renderBooleanControl(value: unknown, onChange: (v: unknown) => void, a11y: FieldA11y): ReactNode {
+	return <Switch {...getControlA11yProps(a11y)} checked={Boolean(value)} onCheckedChange={onChange} />;
 }
 
 function renderControl(
 	field: SchemaFieldInfo,
 	value: unknown,
 	onChange: (v: unknown) => void,
-	widget: string | undefined,
-	enumValues: readonly string[] | undefined,
-	format: string | undefined,
-	min: number | undefined,
-	max: number | undefined,
-	minLength: number | undefined,
-	maxLength: number | undefined,
-	pattern: string | undefined,
+	meta: FieldMeta,
+	a11y: FieldA11y,
 	hasError: boolean,
-): React.ReactNode {
-	if (field.type === "enum" && enumValues) {
-		return renderEnumControl(field, value, onChange, enumValues, hasError);
+): ReactNode {
+	if (field.type === "enum" && meta.enumValues) {
+		return renderEnumControl(field, value, onChange, meta.enumValues, hasError, a11y);
 	}
 	if (field.type === "boolean") {
-		return renderBooleanControl(value, onChange);
+		return renderBooleanControl(value, onChange, a11y);
 	}
 	if (field.type === "string") {
-		return renderStringControl(value, onChange, widget, format, minLength, maxLength, pattern, hasError);
+		return renderStringControl(value, onChange, meta, hasError, a11y);
 	}
 	if (field.type === "number" || field.type === "integer") {
-		return renderNumberControl(field, value, onChange, min, max, hasError);
+		return renderNumberControl(field, value, onChange, meta.min, meta.max, hasError, a11y);
 	}
 	const errorClass = hasError ? "border-destructive" : "";
 	return (
-		<Input value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} className={cn(errorClass)} />
+		<Input
+			{...getControlA11yProps(a11y)}
+			value={(value as string) ?? ""}
+			onChange={(e) => onChange(e.target.value)}
+			className={cn(errorClass)}
+		/>
 	);
 }
