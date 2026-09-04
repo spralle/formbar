@@ -127,10 +127,8 @@ export function SelectItem({
 	return createElement("option", { value, className: cn(selectOptionClassName, className), ...props }, children);
 }
 
-export function SelectValue({ placeholder }: { placeholder?: string }) {
-	return placeholder
-		? createElement("option", { value: "", disabled: true, className: selectOptionClassName }, placeholder)
-		: null;
+export function SelectValue(_props: { placeholder?: string }) {
+	return null;
 }
 
 export function Textarea({ className, ...props }: HTMLAttributes<HTMLTextAreaElement>) {

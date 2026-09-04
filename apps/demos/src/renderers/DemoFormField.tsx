@@ -80,6 +80,10 @@ function toIdPart(value: string): string {
 	return value.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-|-$/g, "") || "field";
 }
 
+export function createRadioOptionId(controlId: string, value: string, index: number): string {
+	return `${controlId}-option-${index}-${toIdPart(value)}`;
+}
+
 function createFieldA11y(
 	fieldPath: string,
 	generatedId: string,
@@ -210,14 +214,17 @@ function renderEnumControl(
 				aria-describedby={a11y.describedBy}
 				aria-invalid={a11y.invalid || undefined}
 			>
-				{enumValues.map((opt) => (
-					<div key={opt} className="flex items-center gap-2">
-						<RadioGroupItem value={opt} id={`${a11y.controlId}-${toIdPart(opt)}`} />
-						<Label htmlFor={`${a11y.controlId}-${toIdPart(opt)}`} className="text-sm text-foreground">
-							{opt}
-						</Label>
-					</div>
-				))}
+				{enumValues.map((opt, index) => {
+					const optionId = createRadioOptionId(a11y.controlId, opt, index);
+					return (
+						<div key={opt} className="flex items-center gap-2">
+							<RadioGroupItem value={opt} id={optionId} />
+							<Label htmlFor={optionId} className="text-sm text-foreground">
+								{opt}
+							</Label>
+						</div>
+					);
+				})}
 			</RadioGroup>
 		);
 	}
