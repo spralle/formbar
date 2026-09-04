@@ -5,8 +5,11 @@ import type {
 	HTMLAttributes,
 	InputHTMLAttributes,
 	LabelHTMLAttributes,
+	OptionHTMLAttributes,
+	ReactNode,
+	SelectHTMLAttributes,
 } from "react";
-import { createContext, createElement, forwardRef, useContext, useId } from "react";
+import { Children, Fragment, createContext, createElement, forwardRef, isValidElement, useContext, useId } from "react";
 
 export function cn(...classes: (string | undefined | null | false)[]): string {
 	return classes.filter(Boolean).join(" ");
@@ -53,28 +56,66 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
 );
 Input.displayName = "Input";
 
-export function Select({
-	children,
-	className,
-	...props
-}: HTMLAttributes<HTMLSelectElement> & { value?: string; onValueChange?: (v: string) => void }) {
-	return createElement("select", { className: cn("border rounded px-3 py-2 text-sm", className), ...props }, children);
+type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, "onChange"> & {
+	onChange?: (event: ChangeEvent<HTMLSelectElement>) => void;
+	onValueChange?: (value: string) => void;
+};
+
+type SelectChildProps = {
+	readonly children?: ReactNode;
+	readonly className?: string;
+	readonly placeholder?: string;
+};
+
+function getSelectTriggerClass(children: ReactNode): string | undefined {
+	for (const child of Children.toArray(children)) {
+		if (!isValidElement<SelectChildProps>(child)) continue;
+		if (child.type === SelectTrigger) return child.props.className;
+		const childClass = getSelectTriggerClass(child.props.children);
+		if (childClass) return childClass;
+	}
 }
 
-export function SelectTrigger({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
-	return createElement("div", { className, ...props }, children);
+function getSelectOptions(children: ReactNode): ReactNode[] {
+	return Children.toArray(children).flatMap((child) => {
+		if (!isValidElement<SelectChildProps>(child)) return [];
+		if (child.type === SelectValue && child.props.placeholder) {
+			return createElement("option", { key: "__placeholder", value: "", disabled: true }, child.props.placeholder);
+		}
+		if (child.type === SelectItem || child.type === "option") return child;
+		return getSelectOptions(child.props.children);
+	});
 }
 
-export function SelectContent({ children, ...props }: HTMLAttributes<HTMLDivElement>) {
-	return createElement("div", props, children);
+export function Select({ children, className, onChange, onValueChange, ...props }: SelectProps) {
+	return createElement(
+		"select",
+		{
+			className: cn("border rounded px-3 py-2 text-sm", getSelectTriggerClass(children), className),
+			onChange: (event: ChangeEvent<HTMLSelectElement>) => {
+				onChange?.(event);
+				onValueChange?.(event.currentTarget.value);
+			},
+			...props,
+		},
+		getSelectOptions(children),
+	);
 }
 
-export function SelectItem({ children, value, ...props }: HTMLAttributes<HTMLOptionElement> & { value: string }) {
+export function SelectTrigger({ children }: HTMLAttributes<HTMLDivElement>) {
+	return createElement(Fragment, null, children);
+}
+
+export function SelectContent({ children }: HTMLAttributes<HTMLDivElement>) {
+	return createElement(Fragment, null, children);
+}
+
+export function SelectItem({ children, value, ...props }: OptionHTMLAttributes<HTMLOptionElement> & { value: string }) {
 	return createElement("option", { value, ...props }, children);
 }
 
-export function SelectValue({ placeholder }: { placeholder?: string }) {
-	return createElement("span", null, placeholder);
+export function SelectValue(_props: { placeholder?: string }) {
+	return null;
 }
 
 export function Textarea({ className, ...props }: HTMLAttributes<HTMLTextAreaElement>) {
@@ -144,17 +185,23 @@ export function RadioGroupItem({ className, value, ...props }: RadioGroupItemPro
 	});
 }
 
-export function Slider({
-	className,
-	...props
-}: HTMLAttributes<HTMLInputElement> & {
+type SliderProps = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "type" | "value"> & {
+	onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
+	onValueChange?: (value: number[]) => void;
 	value?: number[];
-	onValueChange?: (v: number[]) => void;
-	min?: number;
-	max?: number;
-	step?: number;
-}) {
-	return createElement("input", { type: "range", className, ...props });
+};
+
+export function Slider({ className, onChange, onValueChange, value, ...props }: SliderProps) {
+	return createElement("input", {
+		type: "range",
+		className,
+		value: value?.[0],
+		onChange: (event: ChangeEvent<HTMLInputElement>) => {
+			onChange?.(event);
+			onValueChange?.([event.currentTarget.valueAsNumber]);
+		},
+		...props,
+	});
 }
 
 export function Progress({ value, className, ...props }: HTMLAttributes<HTMLDivElement> & { value?: number }) {
