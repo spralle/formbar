@@ -60,6 +60,15 @@ describe("demo control shims", () => {
 		expect(SelectValue({ placeholder: "Choose" })).toBeNull();
 	});
 
+	it("leaves select border utilities free to override the base input border", () => {
+		const select = Select({ className: "border-destructive" });
+		const classes = getNativeProps(select).className?.split(" ");
+
+		expect(classes).toContain("formbar-demo-select");
+		expect(classes).toContain("border-destructive");
+		expect(classes).not.toContain("border-input");
+	});
+
 	it("maps slider array values and native changes", () => {
 		const onChange = vi.fn();
 		const onValueChange = vi.fn();
