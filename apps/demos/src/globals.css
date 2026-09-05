@@ -141,6 +141,7 @@
 		@apply bg-background text-foreground;
 	}
 	select.formbar-demo-select {
+		border-color: var(--input);
 		color-scheme: dark;
 	}
 	select.formbar-demo-select option {

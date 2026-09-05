@@ -67,8 +67,7 @@ type SelectChildProps = {
 	readonly placeholder?: string;
 };
 
-const selectControlClassName =
-	"formbar-demo-select border-input bg-surface-inset text-foreground border rounded px-3 py-2 text-sm";
+const selectControlClassName = "formbar-demo-select bg-surface-inset text-foreground border rounded px-3 py-2 text-sm";
 const selectOptionClassName = "bg-popover text-popover-foreground";
 
 function getSelectTriggerClass(children: ReactNode): string | undefined {
