@@ -1,5 +1,22 @@
 # @formbar/react-schema
 
+## 0.3.0
+
+### Minor Changes
+
+- 7abf551: Expose normalized schema choices, option warnings, and call-level option title resolution through `useSchemaForm`.
+- 5b06137: Adopt `@scheman/core` 1.0 and narrow optional Zod support to `>=3.24.0 <4 || >=4.0.0 <5`. `@formbar/react-schema` inherits this breaking schema contract through its public `@formbar/from-schema` dependency.
+
+### Patch Changes
+
+- acf2011: Omit absent initial data from schema form options while preserving schema-default merging.
+- Updated dependencies [0f180e2]
+- Updated dependencies [5b06137]
+- Updated dependencies [e0d7171]
+  - @formbar/from-schema@0.3.0
+  - @formbar/core@0.3.0
+  - @formbar/react@0.3.0
+
 ## 0.2.1
 
 ### Patch Changes

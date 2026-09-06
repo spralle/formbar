@@ -1,6 +1,6 @@
 {
 	"name": "@formbar/core",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"type": "module",
 	"description": "Headless form state engine with validation, transforms, and middleware",
 	"license": "MIT",
@@ -34,7 +34,10 @@
 			"require": "./dist/validation.entry.cjs"
 		}
 	},
-	"files": ["dist", "src"],
+	"files": [
+		"dist",
+		"src"
+	],
 	"sideEffects": false,
 	"scripts": {
 		"build": "tsc --noEmit",
@@ -42,6 +45,6 @@
 		"test": "vitest run"
 	},
 	"devDependencies": {
-		"@formbar/from-schema": "^0.2.1"
+		"@formbar/from-schema": "^0.3.0"
 	}
 }
