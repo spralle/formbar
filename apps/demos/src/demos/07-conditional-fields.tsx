@@ -1,5 +1,5 @@
 import type { FormApi } from "@formbar/core";
-import type { SchemaFieldInfo } from "@formbar/from-schema";
+import type { FormbarOption, SchemaFieldInfo } from "@formbar/from-schema";
 import { useSchemaForm } from "@formbar/react-schema";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DemoFormField } from "../renderers/DemoFormField";
@@ -49,23 +49,28 @@ function getSectionTitle(status: string): string {
 	return "Details";
 }
 
-function ConditionalForm({
-	form,
-	fieldMap,
-	onChange,
-	status,
-}: {
-	form: FormApi;
-	fieldMap: Map<string, SchemaFieldInfo>;
-	onChange: (path: string, value: unknown) => void;
-	status: string;
-}) {
+interface ConditionalFormProps {
+	readonly form: FormApi;
+	readonly fieldMap: Map<string, SchemaFieldInfo>;
+	readonly optionsByPath: ReadonlyMap<string, readonly FormbarOption[]>;
+	readonly onChange: (path: string, value: unknown) => void;
+	readonly status: string;
+}
+
+function ConditionalForm({ form, fieldMap, optionsByPath, onChange, status }: ConditionalFormProps) {
 	const visiblePaths = VISIBILITY_RULES[status] ?? [];
 	const statusField = fieldMap.get("employmentStatus");
 
 	return (
 		<div className="flex flex-col gap-4">
-			{statusField && <DemoFormField form={form} field={statusField} onChange={onChange} />}
+			{statusField && (
+				<DemoFormField
+					form={form}
+					field={statusField}
+					options={optionsByPath.get(statusField.path)}
+					onChange={onChange}
+				/>
+			)}
 
 			{status && (
 				<div className="flex flex-col gap-3 animate-in fade-in-0 slide-in-from-top-1 duration-200">
@@ -74,7 +79,15 @@ function ConditionalForm({
 						{visiblePaths.map((path) => {
 							const field = fieldMap.get(path);
 							if (!field) return null;
-							return <DemoFormField key={path} form={form} field={field} onChange={onChange} />;
+							return (
+								<DemoFormField
+									key={path}
+									form={form}
+									field={field}
+									options={optionsByPath.get(field.path)}
+									onChange={onChange}
+								/>
+							);
 						})}
 					</div>
 				</div>
@@ -94,8 +107,45 @@ function ConditionalForm({
 	);
 }
 
+interface ConditionalDemoViewProps extends ConditionalFormProps {
+	readonly formData: Record<string, unknown>;
+}
+
+function ConditionalDemoView(props: ConditionalDemoViewProps) {
+	return (
+		<DemoShell
+			title="Conditional Fields"
+			description="Sections dynamically show/hide based on the Employment Status selection. Only relevant fields appear for each status. This demonstrates UI-level visibility rules driven by form state."
+			motivation="Shows dynamic form behavior — fields appear/disappear based on user selection. This is the most requested enterprise form feature: context-sensitive forms that don't overwhelm users with irrelevant fields."
+			features={["Show/Hide Sections", "Dynamic Visibility", "RadioGroup", "Responsive Grid", "State-Driven UI"]}
+			schema={schema}
+		>
+			<div className="flex flex-col gap-4">
+				<Card className="border-border">
+					<CardHeader>
+						<CardTitle className="text-foreground">Live Form</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<ConditionalForm {...props} />
+					</CardContent>
+				</Card>
+				<Card className="border-border">
+					<CardHeader className="pb-2">
+						<CardTitle className="text-sm text-foreground">Form Data (JSON)</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<pre className="rounded-md bg-surface-inset p-3 text-xs text-code-foreground overflow-auto max-h-48 border border-border-muted font-mono">
+							{JSON.stringify(props.formData, null, 2)}
+						</pre>
+					</CardContent>
+				</Card>
+			</div>
+		</DemoShell>
+	);
+}
+
 export function ConditionalFieldsDemo() {
-	const { form, fields } = useSchemaForm(schema, { initialData: {} as Record<string, unknown> });
+	const { form, fields, optionsByPath } = useSchemaForm(schema, { initialData: {} as Record<string, unknown> });
 	const [status, setStatus] = useState("");
 
 	const fieldMap = useMemo(() => {
@@ -118,33 +168,13 @@ export function ConditionalFieldsDemo() {
 	}, [form]);
 
 	return (
-		<DemoShell
-			title="Conditional Fields"
-			description="Sections dynamically show/hide based on the Employment Status selection. Only relevant fields appear for each status. This demonstrates UI-level visibility rules driven by form state."
-			motivation="Shows dynamic form behavior — fields appear/disappear based on user selection. This is the most requested enterprise form feature: context-sensitive forms that don't overwhelm users with irrelevant fields."
-			features={["Show/Hide Sections", "Dynamic Visibility", "RadioGroup", "Responsive Grid", "State-Driven UI"]}
-			schema={schema}
-		>
-			<div className="flex flex-col gap-4">
-				<Card className="border-border">
-					<CardHeader>
-						<CardTitle className="text-foreground">Live Form</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<ConditionalForm form={form} fieldMap={fieldMap} onChange={handleChange} status={status} />
-					</CardContent>
-				</Card>
-				<Card className="border-border">
-					<CardHeader className="pb-2">
-						<CardTitle className="text-sm text-foreground">Form Data (JSON)</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<pre className="rounded-md bg-surface-inset p-3 text-xs text-code-foreground overflow-auto max-h-48 border border-border-muted font-mono">
-							{JSON.stringify(formData, null, 2)}
-						</pre>
-					</CardContent>
-				</Card>
-			</div>
-		</DemoShell>
+		<ConditionalDemoView
+			form={form}
+			fieldMap={fieldMap}
+			optionsByPath={optionsByPath}
+			onChange={handleChange}
+			status={status}
+			formData={formData}
+		/>
 	);
 }

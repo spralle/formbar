@@ -41,6 +41,19 @@ export {
 	createSchemaForm,
 	type SchemaFormResult,
 } from "./create-schema-form.js";
+export {
+	type FormbarOption,
+	type FormbarOptionRecord,
+	type FormbarOptionsMetadata,
+	type FormbarOptionsResult,
+	type FormbarOptionTitleContext,
+	type FormbarOptionTitleResolver,
+	type FormbarOptionValue,
+	type FormbarOptionWarning,
+	type FormbarOptionWarningCode,
+	type NormalizeFormbarOptionsOptions,
+	normalizeFormbarOptions,
+} from "./formbar-options.js";
 export { FromSchemaError, type FromSchemaErrorCode } from "./errors.js";
 export { applyFormbarMetadata } from "./formbar-metadata.js";
 export { compileLayout, type LayoutCompileOptions } from "./layout/layout-compiler.js";

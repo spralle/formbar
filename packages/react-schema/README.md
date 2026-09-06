@@ -57,6 +57,20 @@ export function ProfileForm() {
 }
 ```
 
+## Formbar options
+
+`useSchemaForm` forwards the framework-neutral option preparation API from `@formbar/from-schema`. Normalized `x-formbar.options` are available by field path, and structured preparation warnings remain observable without becoming validation issues:
+
+```tsx
+const { optionsByPath, warnings } = useSchemaForm(schema, {
+	resolveOptionTitle: ({ value, literalTitle }) => (value === "any" ? "All fields" : literalTitle),
+});
+
+const scopeOptions = optionsByPath.get("scope");
+```
+
+The resolver is synchronous and call-scoped. Consumers render and store each option's typed `value`; `title` is presentation-only. See `@formbar/from-schema` for enum authority, warning, fallback-title, and disabled-option semantics.
+
 ## When to use this package
 
 - Use `@formbar/react-schema` when your React forms should be generated from JSON Schema, Zod, or Standard Schema and rendered from Formbar layout nodes.

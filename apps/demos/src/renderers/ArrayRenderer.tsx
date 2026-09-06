@@ -1,68 +1,110 @@
 import type { FormApi } from "@formbar/core";
-import type { LayoutNode, SchemaFieldInfo } from "@formbar/from-schema";
-import { useCallback, useState } from "react";
-import {
-	Badge,
-	Button,
-	Input,
-	Label,
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-	Switch,
-} from "../ui";
-
-let nextArrayItemKey = 0;
-
-function createArrayItemKey(): string {
-	nextArrayItemKey += 1;
-	return `array-item-${nextArrayItemKey}`;
-}
+import type { FormbarOption, LayoutNode, SchemaFieldInfo } from "@formbar/from-schema";
+import type { ResolvedFieldState } from "@formbar/react-schema";
+import React, { type ReactNode, useId, useMemo } from "react";
+import { Badge, Button, Input, Label, Switch } from "../ui";
+import { type ArrayFieldEntry, getArrayFieldEntries, toRenderableOptions } from "./array-renderer-options";
+import { useArrayItems } from "./array-renderer-state";
+import { toIdPart } from "./demo-control-ids";
+import { isDemoFieldDisabled, isDemoSchemaDisabled } from "./demo-field-disabled";
+import { FormbarOptionsSelect } from "./formbar-options-control";
 
 export interface ArrayRendererProps {
 	readonly node: LayoutNode;
 	readonly form: FormApi;
 	readonly fieldMap: Map<string, SchemaFieldInfo>;
+	readonly optionsByPath: ReadonlyMap<string, readonly FormbarOption[]>;
+	readonly fieldStates?: ReadonlyMap<string, ResolvedFieldState>;
 	readonly onChange: (path: string, value: unknown) => void;
 	readonly itemSchema?: Record<string, unknown>;
 }
 
-export function ArrayRenderer({ node, form, fieldMap, onChange, itemSchema }: ArrayRendererProps) {
+export function ArrayRenderer({
+	node,
+	form,
+	fieldMap,
+	optionsByPath,
+	fieldStates,
+	onChange,
+	itemSchema,
+}: ArrayRendererProps) {
 	const field = node.path ? fieldMap.get(node.path) : undefined;
 	const title = field?.metadata?.title ?? node.path ?? "Items";
-	const [items, setItems] = useState<unknown[]>(() => {
-		const data = form.getState().data as Record<string, unknown> | undefined;
-		const val = data?.[node.path ?? ""];
-		return Array.isArray(val) ? val : [];
-	});
-	const [itemKeys, setItemKeys] = useState<string[]>(() => items.map(createArrayItemKey));
-
-	const updateItems = useCallback(
-		(newItems: unknown[]) => {
-			setItems(newItems);
-			if (node.path) onChange(node.path, newItems);
-		},
-		[node.path, onChange],
+	const disabled = isDemoFieldDisabled(field, node.path ? fieldStates?.get(node.path) : undefined);
+	const { arrayId, primitiveOptions, fieldEntries } = useArrayPresentation(
+		node,
+		itemSchema,
+		fieldMap,
+		optionsByPath,
+		fieldStates,
+		disabled,
 	);
+	const { items, itemKeys, updateItems, addItem, removeItem } = useArrayItems(node, form, onChange, itemSchema);
 
-	const addItem = () => {
-		const hasRealChildren = node.children?.some((c) => c.type === "field" && c.path && !c.path.endsWith("[]")) ?? false;
-		const isObjectItems = hasRealChildren || itemSchema?.type === "object";
-		setItemKeys([...itemKeys, createArrayItemKey()]);
-		updateItems([...items, isObjectItems ? {} : ""]);
-	};
+	return (
+		<ArrayPanel
+			arrayId={arrayId}
+			title={title}
+			items={items}
+			itemKeys={itemKeys}
+			itemSchema={itemSchema}
+			fieldEntries={fieldEntries}
+			primitiveOptions={primitiveOptions}
+			disabled={disabled}
+			updateItems={updateItems}
+			removeItem={removeItem}
+			addItem={addItem}
+		/>
+	);
+}
 
-	const removeItem = (index: number) => {
-		setItemKeys(itemKeys.filter((_, i) => i !== index));
-		updateItems(items.filter((_, i) => i !== index));
-	};
+function useArrayPresentation(
+	node: LayoutNode,
+	itemSchema: Record<string, unknown> | undefined,
+	fieldMap: Map<string, SchemaFieldInfo>,
+	optionsByPath: ReadonlyMap<string, readonly FormbarOption[]>,
+	fieldStates: ReadonlyMap<string, ResolvedFieldState> | undefined,
+	disabled: boolean,
+) {
+	const generatedId = useId();
+	const arrayId = `demo-array-${toIdPart(node.path ?? node.id)}-${toIdPart(generatedId)}`;
+	const primitiveOptions = useMemo(() => {
+		const path = node.path ? `${node.path}[]` : "";
+		return toRenderableOptions(path ? optionsByPath.get(path) : undefined);
+	}, [node.path, optionsByPath]);
+	const fieldEntries = useMemo(
+		() => getArrayFieldEntries(node, itemSchema, fieldMap, optionsByPath, fieldStates, disabled),
+		[node, itemSchema, fieldMap, optionsByPath, fieldStates, disabled],
+	);
+	return { arrayId, primitiveOptions, fieldEntries };
+}
 
+interface ArrayPanelProps extends ArrayItemRowsProps {
+	readonly arrayId: string;
+	readonly title: string;
+	readonly addItem: () => void;
+	readonly disabled: boolean;
+}
+
+function ArrayPanel({
+	arrayId,
+	title,
+	items,
+	itemKeys,
+	itemSchema,
+	fieldEntries,
+	primitiveOptions,
+	disabled,
+	updateItems,
+	removeItem,
+	addItem,
+}: ArrayPanelProps) {
 	return (
 		<div className="flex flex-col gap-2">
 			<div className="flex items-center justify-between">
-				<Label className="text-sm font-semibold text-foreground">{title}</Label>
+				<Label id={`${arrayId}-label`} className="text-sm font-semibold text-foreground">
+					{title}
+				</Label>
 				<Badge variant="secondary" className="text-xs">
 					{items.length} items
 				</Badge>
@@ -70,15 +112,17 @@ export function ArrayRenderer({ node, form, fieldMap, onChange, itemSchema }: Ar
 			<div className="flex flex-col gap-2 rounded-md border border-border-muted p-3">
 				{items.length === 0 && <p className="text-xs text-muted-foreground italic">No items yet</p>}
 				<ArrayItemRows
+					arrayId={arrayId}
 					items={items}
 					itemKeys={itemKeys}
 					itemSchema={itemSchema}
-					node={node}
-					fieldMap={fieldMap}
+					fieldEntries={fieldEntries}
+					primitiveOptions={primitiveOptions}
+					disabled={disabled}
 					updateItems={updateItems}
 					removeItem={removeItem}
 				/>
-				<Button variant="outline" size="sm" onClick={addItem} className="self-start mt-1">
+				<Button variant="outline" size="sm" onClick={addItem} className="self-start mt-1" disabled={disabled}>
 					+ Add Item
 				</Button>
 			</div>
@@ -87,27 +131,42 @@ export function ArrayRenderer({ node, form, fieldMap, onChange, itemSchema }: Ar
 }
 
 interface ArrayItemRowsProps {
+	readonly arrayId: string;
 	readonly items: unknown[];
 	readonly itemKeys: string[];
 	readonly itemSchema?: Record<string, unknown>;
-	readonly node: LayoutNode;
-	readonly fieldMap: Map<string, SchemaFieldInfo>;
+	readonly fieldEntries: readonly ArrayFieldEntry[];
+	readonly primitiveOptions: readonly FormbarOption[] | undefined;
+	readonly disabled: boolean;
 	readonly updateItems: (newItems: unknown[]) => void;
 	readonly removeItem: (index: number) => void;
 }
 
-function ArrayItemRows({ items, itemKeys, itemSchema, node, fieldMap, updateItems, removeItem }: ArrayItemRowsProps) {
+function ArrayItemRows({
+	arrayId,
+	items,
+	itemKeys,
+	itemSchema,
+	fieldEntries,
+	primitiveOptions,
+	disabled,
+	updateItems,
+	removeItem,
+}: ArrayItemRowsProps) {
 	return (
 		<>
 			{items.map((item, index) => (
 				<ArrayItem
 					key={itemKeys[index]}
+					arrayId={arrayId}
+					itemKey={itemKeys[index] ?? `item-${index}`}
 					item={item}
 					index={index}
 					items={items}
 					itemSchema={itemSchema}
-					node={node}
-					fieldMap={fieldMap}
+					fieldEntries={fieldEntries}
+					primitiveOptions={primitiveOptions}
+					disabled={disabled}
 					updateItems={updateItems}
 					removeItem={removeItem}
 				/>
@@ -118,81 +177,57 @@ function ArrayItemRows({ items, itemKeys, itemSchema, node, fieldMap, updateItem
 
 interface ArrayItemProps {
 	readonly item: unknown;
+	readonly arrayId: string;
+	readonly itemKey: string;
 	readonly index: number;
 	readonly items: unknown[];
 	readonly itemSchema?: Record<string, unknown>;
-	readonly node: LayoutNode;
-	readonly fieldMap: Map<string, SchemaFieldInfo>;
+	readonly fieldEntries: readonly ArrayFieldEntry[];
+	readonly primitiveOptions: readonly FormbarOption[] | undefined;
+	readonly disabled: boolean;
 	readonly updateItems: (newItems: unknown[]) => void;
 	readonly removeItem: (index: number) => void;
 }
 
-function ArrayItem({ item, index, items, itemSchema, node, fieldMap, updateItems, removeItem }: ArrayItemProps) {
+function ArrayItem(props: ArrayItemProps) {
+	const { arrayId, itemKey, item, index, items, itemSchema, disabled, updateItems, removeItem, primitiveOptions } =
+		props;
 	if (typeof item !== "object" || item === null) {
-		return (
-			<div className="flex items-center gap-2">
-				<Input
-					className="flex-1"
-					value={String(item ?? "")}
-					onChange={(e) => {
-						const newItems = [...items];
-						newItems[index] = e.target.value;
-						updateItems(newItems);
-					}}
-					placeholder={`Item ${index + 1}`}
-				/>
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={() => removeItem(index)}
-					className="text-destructive shrink-0 h-8 w-8 p-0"
-				>
-					×
-				</Button>
-			</div>
-		);
+		return renderPrimitiveArrayItem({
+			arrayId,
+			itemKey,
+			item,
+			index,
+			items,
+			itemSchema,
+			options: primitiveOptions,
+			fieldDisabled: disabled,
+			updateItems,
+			removeItem,
+		});
 	}
+	return renderObjectArrayItem({ ...props, item });
+}
 
-	const realChildren = node.children?.filter((c) => c.type === "field" && c.path && !c.path.endsWith("[]"));
-	const properties = (itemSchema?.properties ?? {}) as Record<string, Record<string, unknown>>;
+function renderObjectArrayItem(props: ArrayItemProps & { readonly item: object }): ReactNode {
+	const { arrayId, itemKey, item, index, items, disabled, updateItems, removeItem, fieldEntries } = props;
 	const record = item as Record<string, unknown>;
-
-	// Derive field entries from layout children (preferred) or itemSchema fallback
-	const fieldEntries: Array<{ key: string; label: string; enumValues: string[] | undefined; fieldType: string }> =
-		realChildren && realChildren.length > 0
-			? realChildren.map((child) => {
-					const field = child.path ? fieldMap.get(child.path) : undefined;
-					const key = child.path ? (child.path.split(".").pop() ?? "") : "";
-					const label = field?.metadata?.title ?? key;
-					const enumValues = field?.metadata?.enum as string[] | undefined;
-					const fieldType = field?.type ?? "string";
-					return { key, label, enumValues, fieldType };
-				})
-			: Object.entries(properties).map(([key, propSchema]) => ({
-					key,
-					label: (propSchema.title as string) ?? key,
-					enumValues: propSchema.enum as string[] | undefined,
-					fieldType: propSchema.type as string,
-				}));
-
 	return (
 		<div className="flex items-start gap-2">
 			<div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-md border border-border-muted p-3">
-				{fieldEntries.map(({ key, label, enumValues, fieldType }) => (
-					<div key={key} className="flex flex-col gap-1">
-						<Label className="text-xs text-muted-foreground">{label}</Label>
-						{renderArrayItemField(key, record, fieldType, enumValues, (newValue) => {
-							const newItems = [...items];
-							newItems[index] = { ...record, [key]: newValue };
-							updateItems(newItems);
-						})}
-					</div>
-				))}
+				{fieldEntries.map((entry, fieldIndex) =>
+					renderObjectArrayField(entry, fieldIndex, arrayId, itemKey, record, (newValue) => {
+						const newItems = [...items];
+						newItems[index] = { ...record, [entry.key]: newValue };
+						updateItems(newItems);
+					}),
+				)}
 			</div>
 			<Button
 				variant="ghost"
 				size="sm"
 				onClick={() => removeItem(index)}
+				disabled={disabled}
 				className="text-destructive shrink-0 h-8 w-8 p-0"
 			>
 				×
@@ -201,41 +236,148 @@ function ArrayItem({ item, index, items, itemSchema, node, fieldMap, updateItems
 	);
 }
 
-function renderArrayItemField(
-	key: string,
+interface PrimitiveArrayItemProps {
+	readonly arrayId: string;
+	readonly itemKey: string;
+	readonly item: unknown;
+	readonly index: number;
+	readonly items: unknown[];
+	readonly itemSchema: Record<string, unknown> | undefined;
+	readonly options: readonly FormbarOption[] | undefined;
+	readonly fieldDisabled: boolean;
+	readonly updateItems: (newItems: unknown[]) => void;
+	readonly removeItem: (index: number) => void;
+}
+
+function renderPrimitiveArrayItem(props: PrimitiveArrayItemProps): ReactNode {
+	const disabled = props.fieldDisabled || isDemoSchemaDisabled(props.itemSchema);
+	const controlId = `${props.arrayId}-${toIdPart(props.itemKey)}-item`;
+	const updateItem = (newValue: unknown) => {
+		const newItems = [...props.items];
+		newItems[props.index] = newValue;
+		props.updateItems(newItems);
+	};
+
+	return (
+		<div className="flex items-center gap-2">
+			{props.options ? (
+				<FormbarOptionsSelect
+					options={props.options}
+					value={props.item}
+					onChange={updateItem}
+					fieldDisabled={disabled}
+					a11y={{ controlId, labelId: `${props.arrayId}-label`, describedBy: undefined, invalid: false }}
+					className="flex-1"
+					triggerClassName="h-8 text-xs"
+				/>
+			) : (
+				<Input
+					id={controlId}
+					aria-labelledby={`${props.arrayId}-label`}
+					className="flex-1"
+					value={String(props.item ?? "")}
+					onChange={(e) => updateItem(e.target.value)}
+					placeholder={`Item ${props.index + 1}`}
+					disabled={disabled}
+				/>
+			)}
+			<Button
+				variant="ghost"
+				size="sm"
+				onClick={() => props.removeItem(props.index)}
+				disabled={disabled}
+				className="text-destructive shrink-0 h-8 w-8 p-0"
+			>
+				×
+			</Button>
+		</div>
+	);
+}
+
+function renderObjectArrayField(
+	entry: ArrayFieldEntry,
+	fieldIndex: number,
+	arrayId: string,
+	itemKey: string,
 	record: Record<string, unknown>,
-	fieldType: string,
-	enumValues: string[] | undefined,
 	onChange: (value: unknown) => void,
-): React.ReactNode {
-	if (enumValues) {
+): ReactNode {
+	const controlId = createObjectArrayControlId(arrayId, itemKey, entry.key, fieldIndex);
+	return (
+		<div key={entry.key} className="flex flex-col gap-1">
+			<Label id={`${controlId}-label`} htmlFor={controlId} className="text-xs text-muted-foreground">
+				{entry.label}
+			</Label>
+			{renderArrayItemField(entry, record, controlId, onChange)}
+		</div>
+	);
+}
+
+function renderArrayItemField(
+	entry: ArrayFieldEntry,
+	record: Record<string, unknown>,
+	controlId: string,
+	onChange: (value: unknown) => void,
+): ReactNode {
+	if (entry.options) {
 		return (
-			<Select value={String(record[key] ?? "")} onValueChange={onChange}>
-				<SelectTrigger className="h-8 text-xs">
-					<SelectValue placeholder="Select..." />
-				</SelectTrigger>
-				<SelectContent>
-					{enumValues.map((opt) => (
-						<SelectItem key={opt} value={opt}>
-							{opt}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
-		);
-	}
-	if (fieldType === "boolean") {
-		return <Switch checked={Boolean(record[key])} onCheckedChange={onChange} />;
-	}
-	if (fieldType === "number" || fieldType === "integer") {
-		return (
-			<Input
-				type="number"
-				className="h-8 text-xs"
-				value={String(record[key] ?? "")}
-				onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}
+			<FormbarOptionsSelect
+				options={entry.options}
+				value={record[entry.key]}
+				onChange={onChange}
+				fieldDisabled={entry.disabled}
+				a11y={{ controlId, labelId: `${controlId}-label`, describedBy: undefined, invalid: false }}
+				className="flex-1"
+				triggerClassName="h-8 text-xs"
 			/>
 		);
 	}
-	return <Input className="h-8 text-xs" value={String(record[key] ?? "")} onChange={(e) => onChange(e.target.value)} />;
+	if (entry.fieldType === "boolean") {
+		return renderBooleanArrayField(entry, record, controlId, onChange);
+	}
+	if (entry.fieldType === "number" || entry.fieldType === "integer") {
+		return renderNumberArrayField(entry, record, controlId, onChange);
+	}
+	return (
+		<Input
+			id={controlId}
+			className="h-8 text-xs"
+			value={String(record[entry.key] ?? "")}
+			onChange={(e) => onChange(e.target.value)}
+			disabled={entry.disabled}
+		/>
+	);
+}
+
+function renderBooleanArrayField(
+	entry: ArrayFieldEntry,
+	record: Record<string, unknown>,
+	controlId: string,
+	onChange: (value: unknown) => void,
+): ReactNode {
+	return (
+		<Switch id={controlId} checked={Boolean(record[entry.key])} onCheckedChange={onChange} disabled={entry.disabled} />
+	);
+}
+
+function renderNumberArrayField(
+	entry: ArrayFieldEntry,
+	record: Record<string, unknown>,
+	controlId: string,
+	onChange: (value: unknown) => void,
+): ReactNode {
+	return (
+		<Input
+			id={controlId}
+			type="number"
+			className="h-8 text-xs"
+			value={String(record[entry.key] ?? "")}
+			onChange={(event) => onChange(event.target.value ? Number(event.target.value) : undefined)}
+			disabled={entry.disabled}
+		/>
+	);
+}
+
+function createObjectArrayControlId(arrayId: string, itemKey: string, fieldKey: string, fieldIndex: number): string {
+	return `${arrayId}-${toIdPart(itemKey)}-field-${fieldIndex}-${toIdPart(fieldKey)}`;
 }

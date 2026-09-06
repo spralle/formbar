@@ -5,6 +5,13 @@ describe("@formbar/from-schema public API surface", () => {
 		const mod = await import("../index.js");
 		const exports = Object.keys(mod).sort();
 
-		expect(exports).toEqual(expect.arrayContaining(["createSchemaForm", "applyLayoutMiddleware", "FromSchemaError"]));
+		expect(exports).toEqual(
+			expect.arrayContaining([
+				"createSchemaForm",
+				"applyLayoutMiddleware",
+				"FromSchemaError",
+				"normalizeFormbarOptions",
+			]),
+		);
 	});
 });

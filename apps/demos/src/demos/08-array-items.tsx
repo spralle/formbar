@@ -11,7 +11,10 @@ const schema = {
 		tags: {
 			type: "array",
 			title: "Tags",
-			items: { type: "string" },
+			items: {
+				type: "string",
+				"x-formbar": { options: ["frontend", { value: "backend", title: "Back end", disabled: true }] },
+			},
 		},
 		teamMembers: {
 			type: "array",
@@ -20,7 +23,19 @@ const schema = {
 				type: "object",
 				properties: {
 					name: { type: "string", title: "Name" },
-					role: { type: "string", title: "Role", enum: ["Lead", "Developer", "Designer", "QA"] },
+					role: {
+						type: "string",
+						title: "Role",
+						enum: ["lead", "developer", "designer", "qa"],
+						"x-formbar": {
+							options: [
+								{ value: "lead", title: "Team lead" },
+								{ value: "developer", title: "Developer" },
+								{ value: "designer", title: "Designer" },
+								{ value: "qa", title: "Quality assurance" },
+							],
+						},
+					},
 					email: { type: "string", title: "Email" },
 				},
 			},

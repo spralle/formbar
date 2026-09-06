@@ -1,27 +1,16 @@
 import type { FormApi } from "@formbar/core";
-import type { SchemaFieldInfo } from "@formbar/from-schema";
-import type { ReactNode } from "react";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
-import {
-	Badge,
-	Input,
-	Label,
-	RadioGroup,
-	RadioGroupItem,
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-	Slider,
-	Switch,
-	Textarea,
-	cn,
-} from "../ui";
+import type { FormbarOption, SchemaFieldInfo } from "@formbar/from-schema";
+import type { ResolvedFieldState } from "@formbar/react-schema";
+import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
+import { Badge, Input, Label, Slider, Switch, Textarea, cn } from "../ui";
+import { toIdPart } from "./demo-control-ids";
+import { isDemoFieldDisabled } from "./demo-field-disabled";
+import { renderFormbarOptionsControl } from "./formbar-options-control";
 
 interface FieldMeta {
 	readonly widget: string | undefined;
-	readonly enumValues: readonly string[] | undefined;
+	readonly options: readonly FormbarOption[] | undefined;
+	readonly disabled: boolean;
 	readonly format: string | undefined;
 	readonly min: number | undefined;
 	readonly max: number | undefined;
@@ -32,11 +21,16 @@ interface FieldMeta {
 	readonly description: string | undefined;
 }
 
-function extractFieldMeta(field: SchemaFieldInfo): FieldMeta {
+function extractFieldMeta(
+	field: SchemaFieldInfo,
+	resolvedOptions?: readonly FormbarOption[],
+	fieldState?: ResolvedFieldState,
+): FieldMeta {
 	const meta = field.metadata;
 	return {
 		widget: meta?.widget,
-		enumValues: Array.isArray(meta?.enum) ? meta.enum.map(String) : undefined,
+		options: resolvedOptions,
+		disabled: isDemoFieldDisabled(field, fieldState),
 		format: meta?.format,
 		min: meta?.minimum,
 		max: meta?.maximum,
@@ -51,6 +45,8 @@ function extractFieldMeta(field: SchemaFieldInfo): FieldMeta {
 interface DemoFormFieldProps {
 	readonly form: FormApi;
 	readonly field: SchemaFieldInfo;
+	readonly options?: readonly FormbarOption[];
+	readonly fieldState?: ResolvedFieldState;
 	readonly onChange: (path: string, value: unknown) => void;
 }
 
@@ -74,14 +70,6 @@ function buildConstraints(field: SchemaFieldInfo, meta: FieldMeta): string[] {
 		constraints.push(`${meta.min}–${meta.max}`);
 	if (meta.format) constraints.push(meta.format);
 	return constraints;
-}
-
-function toIdPart(value: string): string {
-	return value.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-|-$/g, "") || "field";
-}
-
-export function createRadioOptionId(controlId: string, value: string, index: number): string {
-	return `${controlId}-option-${index}-${toIdPart(value)}`;
 }
 
 function createFieldA11y(
@@ -108,8 +96,8 @@ function createFieldA11y(
 	};
 }
 
-function isGroupedField(field: SchemaFieldInfo, enumValues: readonly string[] | undefined): boolean {
-	return field.type === "enum" && Boolean(enumValues && enumValues.length <= 5);
+function isGroupedField(options: readonly FormbarOption[] | undefined): boolean {
+	return Boolean(options && options.length > 0 && options.length <= 5);
 }
 
 function getControlA11yProps(a11y: FieldA11y) {
@@ -146,18 +134,18 @@ function useDemoFieldValue(
 	return [value, handleChange];
 }
 
-export function DemoFormField({ form, field, onChange }: DemoFormFieldProps) {
+export function DemoFormField({ form, field, options: resolvedOptions, fieldState, onChange }: DemoFormFieldProps) {
 	const [value, handleChange] = useDemoFieldValue(form, field, onChange);
 	const generatedId = useId();
 
-	const meta = extractFieldMeta(field);
-	const { enumValues, title, description } = meta;
+	const meta = extractFieldMeta(field, resolvedOptions, fieldState);
+	const { options, title, description } = meta;
 
 	const issues = form.getState().issues?.filter((i) => i.path.segments.join(".") === field.path) ?? [];
 	const hasError = issues.length > 0;
 	const constraints = buildConstraints(field, meta);
 	const a11y = createFieldA11y(field.path, generatedId, Boolean(description), hasError, constraints.length > 0);
-	const groupedField = isGroupedField(field, enumValues);
+	const groupedField = isGroupedField(options);
 
 	return (
 		<div className="flex flex-col gap-1.5">
@@ -195,56 +183,6 @@ export function DemoFormField({ form, field, onChange }: DemoFormFieldProps) {
 	);
 }
 
-function renderEnumControl(
-	field: SchemaFieldInfo,
-	value: unknown,
-	onChange: (v: unknown) => void,
-	enumValues: readonly string[],
-	hasError: boolean,
-	a11y: FieldA11y,
-): ReactNode {
-	if (enumValues.length <= 5) {
-		return (
-			<RadioGroup
-				id={a11y.controlId}
-				value={(value as string) ?? ""}
-				onValueChange={onChange}
-				className="flex flex-col gap-2"
-				aria-labelledby={a11y.labelId}
-				aria-describedby={a11y.describedBy}
-				aria-invalid={a11y.invalid || undefined}
-			>
-				{enumValues.map((opt, index) => {
-					const optionId = createRadioOptionId(a11y.controlId, opt, index);
-					return (
-						<div key={opt} className="flex items-center gap-2">
-							<RadioGroupItem value={opt} id={optionId} />
-							<Label htmlFor={optionId} className="text-sm text-foreground">
-								{opt}
-							</Label>
-						</div>
-					);
-				})}
-			</RadioGroup>
-		);
-	}
-	const errorClass = hasError ? "border-destructive" : "";
-	return (
-		<Select {...getControlA11yProps(a11y)} value={(value as string) ?? ""} onValueChange={onChange}>
-			<SelectTrigger className={cn(errorClass)}>
-				<SelectValue placeholder="Select..." />
-			</SelectTrigger>
-			<SelectContent>
-				{enumValues.map((opt) => (
-					<SelectItem key={opt} value={opt}>
-						{opt}
-					</SelectItem>
-				))}
-			</SelectContent>
-		</Select>
-	);
-}
-
 function renderStringControl(
 	value: unknown,
 	onChange: (v: unknown) => void,
@@ -262,6 +200,7 @@ function renderStringControl(
 				className={cn(errorClass)}
 				maxLength={meta.maxLength}
 				rows={4}
+				disabled={meta.disabled}
 			/>
 		);
 	}
@@ -276,6 +215,7 @@ function renderStringControl(
 			minLength={meta.minLength}
 			maxLength={meta.maxLength}
 			pattern={meta.pattern}
+			disabled={meta.disabled}
 		/>
 	);
 }
@@ -284,24 +224,26 @@ function renderNumberControl(
 	field: SchemaFieldInfo,
 	value: unknown,
 	onChange: (v: unknown) => void,
-	min: number | undefined,
-	max: number | undefined,
+	meta: FieldMeta,
 	hasError: boolean,
 	a11y: FieldA11y,
 ): ReactNode {
-	if (min != null && max != null) {
+	if (meta.min != null && meta.max != null) {
 		return (
 			<div className="flex items-center gap-3">
 				<Slider
 					{...getControlA11yProps(a11y)}
-					min={min}
-					max={max}
+					min={meta.min}
+					max={meta.max}
 					step={field.type === "integer" ? 1 : 0.1}
-					value={[typeof value === "number" ? value : min]}
+					value={[typeof value === "number" ? value : meta.min]}
 					onValueChange={([v]) => onChange(v)}
 					className="flex-1"
+					disabled={meta.disabled}
 				/>
-				<span className="text-sm text-muted-foreground w-10 text-right">{typeof value === "number" ? value : min}</span>
+				<span className="text-sm text-muted-foreground w-10 text-right">
+					{typeof value === "number" ? value : meta.min}
+				</span>
 			</div>
 		);
 	}
@@ -316,17 +258,25 @@ function renderNumberControl(
 			{...getControlA11yProps(a11y)}
 			type="number"
 			step={step}
-			min={min}
-			max={max}
+			min={meta.min}
+			max={meta.max}
 			value={(value as string) ?? ""}
 			onChange={(e) => onChange(parseValue(e.target.value))}
 			className={cn(errorClass)}
+			disabled={meta.disabled}
 		/>
 	);
 }
 
-function renderBooleanControl(value: unknown, onChange: (v: unknown) => void, a11y: FieldA11y): ReactNode {
-	return <Switch {...getControlA11yProps(a11y)} checked={Boolean(value)} onCheckedChange={onChange} />;
+function renderBooleanControl(
+	value: unknown,
+	onChange: (v: unknown) => void,
+	disabled: boolean,
+	a11y: FieldA11y,
+): ReactNode {
+	return (
+		<Switch {...getControlA11yProps(a11y)} checked={Boolean(value)} onCheckedChange={onChange} disabled={disabled} />
+	);
 }
 
 function renderControl(
@@ -337,17 +287,17 @@ function renderControl(
 	a11y: FieldA11y,
 	hasError: boolean,
 ): ReactNode {
-	if (field.type === "enum" && meta.enumValues) {
-		return renderEnumControl(field, value, onChange, meta.enumValues, hasError, a11y);
+	if (meta.options && meta.options.length > 0) {
+		return renderFormbarOptionsControl(value, onChange, meta.options, meta.disabled, hasError, a11y);
 	}
 	if (field.type === "boolean") {
-		return renderBooleanControl(value, onChange, a11y);
+		return renderBooleanControl(value, onChange, meta.disabled, a11y);
 	}
 	if (field.type === "string") {
 		return renderStringControl(value, onChange, meta, hasError, a11y);
 	}
 	if (field.type === "number" || field.type === "integer") {
-		return renderNumberControl(field, value, onChange, meta.min, meta.max, hasError, a11y);
+		return renderNumberControl(field, value, onChange, meta, hasError, a11y);
 	}
 	const errorClass = hasError ? "border-destructive" : "";
 	return (
@@ -356,6 +306,7 @@ function renderControl(
 			value={(value as string) ?? ""}
 			onChange={(e) => onChange(e.target.value)}
 			className={cn(errorClass)}
+			disabled={meta.disabled}
 		/>
 	);
 }
