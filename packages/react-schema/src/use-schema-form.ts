@@ -80,7 +80,7 @@ export function useSchemaForm<TData, TUi>(
 	const form = useForm<TData, TUi>({
 		...options,
 		schema,
-		initialData: mergedInitialData,
+		...(mergedInitialData === undefined ? {} : { initialData: mergedInitialData }),
 		validators: prepared.validators,
 	});
 
