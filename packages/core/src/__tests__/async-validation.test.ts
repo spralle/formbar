@@ -11,6 +11,7 @@ function makeAsyncValidator(opts: {
 	issues?: readonly ValidationIssue[];
 	delayMs?: number;
 	onCall?: () => void;
+	waitUntil?: Promise<void>;
 }): AsyncValidatorConfig {
 	const issues = opts.issues ?? [
 		{
@@ -33,6 +34,7 @@ function makeAsyncValidator(opts: {
 		trigger: opts.trigger,
 		validate: async ({ signal }) => {
 			opts.onCall?.();
+			if (opts.waitUntil) await opts.waitUntil;
 			if (opts.delayMs) {
 				await new Promise<void>((resolve) => {
 					const timer = setTimeout(resolve, opts.delayMs);
@@ -50,6 +52,22 @@ function makeAsyncValidator(opts: {
 
 function wait(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createDeferred() {
+	let resolve = () => undefined;
+	const promise = new Promise<void>((complete) => {
+		resolve = complete;
+	});
+	return { promise, resolve };
+}
+
+async function waitFor(condition: () => boolean, description: string, timeoutMs = 1_000): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (!condition()) {
+		if (Date.now() >= deadline) throw new Error(`Timed out waiting for ${description}`);
+		await wait(1);
+	}
 }
 
 describe("async validation", () => {
@@ -146,24 +164,27 @@ describe("async validation", () => {
 	});
 
 	it("multiple fields concurrent — both can be validating simultaneously", async () => {
+		const releaseValidation = createDeferred();
+		let startedCount = 0;
+		const markStarted = () => {
+			startedCount += 1;
+		};
 		const form = createForm({
 			initialData: { name: "", email: "" },
 			asyncValidators: [
-				makeAsyncValidator({ label: "av-name", fields: ["name"], debounceMs: 10, delayMs: 30 }),
+				makeAsyncValidator({
+					label: "av-name",
+					fields: ["name"],
+					debounceMs: 10,
+					onCall: markStarted,
+					waitUntil: releaseValidation.promise,
+				}),
 				makeAsyncValidator({
 					label: "av-email",
 					fields: ["email"],
 					debounceMs: 10,
-					delayMs: 30,
-					issues: [
-						{
-							code: "async-email",
-							message: "Bad email",
-							severity: "error" as const,
-							path: { namespace: "data" as const, segments: ["email"], canonical: "email" },
-							source: { origin: "async-validator" as const, validatorId: "av-email" },
-						},
-					],
+					onCall: markStarted,
+					waitUntil: releaseValidation.promise,
 				}),
 			],
 		});
@@ -174,16 +195,20 @@ describe("async validation", () => {
 		form.setValue("name", "x");
 		form.setValue("email", "y");
 
-		expect(nameField.isValidating()).toBe(true);
-		expect(emailField.isValidating()).toBe(true);
+		try {
+			await waitFor(() => startedCount === 2, "both validators to start");
+			expect(nameField.isValidating()).toBe(true);
+			expect(emailField.isValidating()).toBe(true);
 
-		await wait(60);
-		expect(nameField.isValidating()).toBe(false);
-		expect(emailField.isValidating()).toBe(false);
+			releaseValidation.resolve();
+			await waitFor(() => !nameField.isValidating() && !emailField.isValidating(), "both validators to settle");
 
-		const asyncIssues = form.getState().issues.filter((i) => i.source.origin === "async-validator");
-		expect(asyncIssues.length).toBe(2);
-		form.dispose();
+			const asyncIssues = form.getState().issues.filter((i) => i.source.origin === "async-validator");
+			expect(asyncIssues.length).toBe(2);
+		} finally {
+			releaseValidation.resolve();
+			form.dispose();
+		}
 	});
 
 	it("issue merge: replaces previous async issues from same validator", async () => {
