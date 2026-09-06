@@ -37,7 +37,7 @@ export interface SubmitHandlerDeps<TData, TUi> {
 	readonly pipelineStore: FormStore<unknown, unknown>;
 	readonly pipelineOptions: CreateFormOptions<unknown, unknown>;
 	readonly options: CreateFormOptions<TData, TUi>;
-	readonly plugins: readonly FormPlugin[];
+	readonly plugins: readonly FormPlugin<TData, TUi>[];
 	readonly getApi: () => FormApi<TData, TUi>;
 	/** Hook called before onSubmit execution — run async validators, return merged issues */
 	readonly beforeOnSubmit?: (() => Promise<readonly ValidationIssue[]>) | undefined;

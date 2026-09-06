@@ -16,7 +16,7 @@ import { disposeMiddlewares, initMiddlewares } from "./middleware-runner.js";
 import { parsePath } from "./path-parser.js";
 import type { CanonicalPath } from "./path.js";
 import { executePipeline } from "./pipeline.js";
-import type { FormPlugin, PluginFieldMeta } from "./plugin-types.js";
+import type { FormPlugin, PluginFieldMeta, PluginInitContext } from "./plugin-types.js";
 import { createStandardSchemaValidator, isStandardSchemaLike } from "./standard-schema.js";
 import type { CreateFormOptions, FieldMetaEntry, FormState, ValidationIssue } from "./state.js";
 import { FormStore } from "./store.js";
@@ -95,7 +95,7 @@ export function createForm<TData, TUi>(
 	}
 
 	// Plugin lifecycle
-	const plugins = (options.plugins ?? []) as readonly FormPlugin[];
+	const plugins: readonly FormPlugin<TData, TUi>[] = options.plugins ?? [];
 	const pluginDisposers: (() => void)[] = [];
 	let currentPluginFieldMeta: Readonly<Record<string, PluginFieldMeta>> = {};
 
@@ -331,21 +331,16 @@ export function createForm<TData, TUi>(
 	for (const plugin of plugins) {
 		if (!plugin.onInit) continue;
 		const pluginId = plugin.id;
-		const initCtx = {
+		const initCtx: PluginInitContext<TData, TUi> = {
 			getState: () => ({
-				data: store.getState().data as Readonly<unknown>,
-				uiState: store.getState().uiState as Readonly<unknown>,
+				data: store.getState().data,
+				uiState: store.getState().uiState,
 			}),
-			subscribe: (
-				listener: (state: { readonly data: Readonly<unknown>; readonly uiState: Readonly<unknown> }) => void,
-			) =>
-				store.subscribe((s) =>
-					listener({ data: s.data as Readonly<unknown>, uiState: s.uiState as Readonly<unknown> }),
-				),
+			subscribe: (listener) => store.subscribe((state) => listener({ data: state.data, uiState: state.uiState })),
 			dispatch: (a: FormAction) => {
 				dispatch({ ...a, origin: `plugin:${pluginId}` });
 			},
-			initialData: initialDataSnapshot as Readonly<unknown>,
+			initialData: initialDataSnapshot,
 		};
 		const disposer = plugin.onInit(initCtx);
 		if (disposer) pluginDisposers.push(disposer);
