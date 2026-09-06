@@ -4,13 +4,12 @@ import {
 	PLAYGROUND_DOCUMENT_VERSION,
 	type PlaygroundDocument,
 	type PlaygroundSources,
+	SOURCE_KEYS,
 	SOURCE_LIMIT_BYTES,
 	type SourceErrors,
 	type SourceKey,
 	TOTAL_LIMIT_BYTES,
 } from "./contracts";
-
-export const SOURCE_KEYS: readonly SourceKey[] = ["schema", "layout", "rules", "initialData", "initialUiState"];
 const BUILT_IN_NODES = new Set(["group", "section", "field", "array"]);
 
 export function stringifyDocument(document: PlaygroundDocument): PlaygroundSources {

@@ -1,15 +1,16 @@
-import { type Dispatch, type RefObject, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from "react";
 import type { DemoFormSnapshot } from "../renderers/DemoFormRoot";
 import { Button } from "../ui";
 import { PlaygroundRunner } from "./PlaygroundRunner";
 import { PreviewErrorBoundary } from "./PreviewErrorBoundary";
 import { SourceEditor } from "./SourceEditor";
 import { StateInspector } from "./StateInspector";
-import type { PlaygroundPreset, SourceKey } from "./contracts";
-import { SOURCE_KEYS, formatJson, stringifyDocument } from "./document";
+import { type PlaygroundPreset, SOURCE_KEYS, type SourceKey } from "./contracts";
+import { formatJson, stringifyDocument } from "./document";
+import { removeRecoveryDraft } from "./draft-recovery";
 import { getCompatibility, getPreset } from "./presets";
 import { applySources, createPlaygroundSession, resetLiveForm, resetSession, updateSource } from "./session";
-import { type StoredDraft, discardDraft, loadDraft, saveDraft } from "./storage";
+import { type StoredDraft, loadDraft, saveDraft } from "./storage";
 
 interface PlaygroundPageProps {
 	readonly demoId: string;
@@ -26,15 +27,6 @@ const buttonClass = "border-border bg-secondary text-secondary-foreground hover:
 function isDirty(preset: PlaygroundPreset, sources: Session["sources"]): boolean {
 	const baseline = stringifyDocument(preset.document);
 	return SOURCE_KEYS.some((key) => sources[key] !== baseline[key]);
-}
-
-function announce(
-	message: string,
-	setStatus: Dispatch<SetStateAction<string>>,
-	ref: RefObject<HTMLOutputElement | null>,
-) {
-	setStatus(message);
-	window.setTimeout(() => ref.current?.focus(), 0);
 }
 
 function downloadDocument(preset: PlaygroundPreset, document: PlaygroundPreset["document"]): void {
@@ -100,18 +92,18 @@ function usePlaygroundController(preset: PlaygroundPreset) {
 	const [snapshot, setSnapshot] = useState<DemoFormSnapshot | null>(null);
 	const [status, setStatus] = useState("Preset loaded. Preview session is fresh.");
 	const [offer, setOffer] = useState(() => loadDraft(window.localStorage, preset.key));
-	const statusRef = useRef<HTMLOutputElement>(null);
 	const baseline = useMemo(() => stringifyDocument(preset.document), [preset]);
 	const dirty = isDirty(preset, session.sources);
 	const saveFailed = useDraftPersistence(preset, session, dirty, offer);
-	const notify = (message: string) => announce(message, setStatus, statusRef);
+	const notify = (message: string) => setStatus(message);
 	const apply = () => applyAction(session, setSession, setSnapshot, notify);
 	const resetPreset = () => {
 		if (dirty && !window.confirm("Discard editor changes and reset this preset?")) return;
 		setSession(resetSession(session, preset.document));
 		setSnapshot(null);
-		discardDraft(window.localStorage, preset.key);
-		notify("Preset and live preview reset to a fresh session.");
+		const result = removeRecoveryDraft(window.localStorage, preset.key, offer, "reset");
+		setOffer(result.offer);
+		notify(result.message);
 	};
 	const restore = () => {
 		if (!offer) return;
@@ -120,9 +112,9 @@ function usePlaygroundController(preset: PlaygroundPreset) {
 		notify("Draft restored to editors only. Apply when ready to update the preview.");
 	};
 	const discard = () => {
-		discardDraft(window.localStorage, preset.key);
-		setOffer(null);
-		notify("Saved draft discarded.");
+		const result = removeRecoveryDraft(window.localStorage, preset.key, offer, "discard");
+		setOffer(result.offer);
+		notify(result.message);
 	};
 	return {
 		session,
@@ -132,7 +124,6 @@ function usePlaygroundController(preset: PlaygroundPreset) {
 		snapshot,
 		setSnapshot,
 		status,
-		statusRef,
 		baseline,
 		saveFailed,
 		offer,
@@ -276,7 +267,7 @@ function SupportedPlayground(props: PlaygroundPageProps & { readonly preset: Pla
 				onCopy={() => copyAction(state.session.sources[state.active], state.active, state.notify)}
 				onDownload={() => downloadDocument(props.preset, state.session.applied)}
 			/>
-			<output ref={state.statusRef} aria-live="polite" tabIndex={-1} className="sr-only">
+			<output aria-live="polite" className="sr-only">
 				{state.saveFailed ? "Draft could not be saved." : state.status}
 			</output>
 			<PlaygroundWorkspace state={state} />

@@ -2,7 +2,8 @@ export const PLAYGROUND_DOCUMENT_VERSION = 1 as const;
 export const SOURCE_LIMIT_BYTES = 200_000;
 export const TOTAL_LIMIT_BYTES = 500_000;
 
-export type SourceKey = "schema" | "layout" | "rules" | "initialData" | "initialUiState";
+export const SOURCE_KEYS = ["schema", "layout", "rules", "initialData", "initialUiState"] as const;
+export type SourceKey = (typeof SOURCE_KEYS)[number];
 
 export interface PlaygroundDocument {
 	readonly version: typeof PLAYGROUND_DOCUMENT_VERSION;
