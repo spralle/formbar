@@ -277,6 +277,48 @@ describe("schema form options", () => {
 		expect(issues).toEqual([]);
 	});
 
+	test("prepares referenced primitive array item options and aggregates warnings at the item path", () => {
+		const result = createSchemaForm({
+			type: "object",
+			$defs: {
+				Tag: {
+					type: "string",
+					enum: ["kept", "fallback"],
+					"x-formbar": {
+						options: [
+							{ value: "missing", title: "Missing" },
+							{ value: "kept", title: "Kept" },
+							{ value: "kept", title: "Duplicate" },
+							{ value: [], title: "Malformed" },
+						],
+					},
+				},
+			},
+			properties: { tags: { type: "array", items: { $ref: "#/$defs/Tag" } } },
+		});
+
+		expect(result.optionsByPath.get("tags[]")).toEqual([
+			{ value: "kept", title: "Kept" },
+			{ value: "fallback", title: "fallback" },
+		]);
+		expect(result.warnings).toEqual([
+			expect.objectContaining({ code: "FORMBAR_OPTION_UNMATCHED", path: "tags[]", index: 0, value: "missing" }),
+			expect.objectContaining({ code: "FORMBAR_OPTION_DUPLICATE", path: "tags[]", index: 2, value: "kept" }),
+			expect.objectContaining({ code: "FORMBAR_OPTION_MALFORMED", path: "tags[]", index: 3, value: [] }),
+		]);
+	});
+
+	test("does not introspect unavailable Zod array item metadata", () => {
+		const result = createSchemaForm(
+			z.object({
+				tags: z.array(z.enum(["kept"]).meta({ formbar: { options: [{ value: "kept", title: "Kept" }] } })),
+			}),
+		);
+
+		expect(result.optionsByPath.get("tags[]")).toBeUndefined();
+		expect(result.warnings).toEqual([]);
+	});
+
 	test("does not reinterpret unions as enums", () => {
 		const result = createSchemaForm(z.object({ value: z.union([z.literal("a"), z.literal("b")]) }));
 		expect(result.fields[0]?.type).toBe("union");

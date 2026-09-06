@@ -1,9 +1,4 @@
-import {
-	type FormbarOption,
-	type LayoutNode,
-	type SchemaFieldInfo,
-	normalizeFormbarOptions,
-} from "@formbar/from-schema";
+import type { FormbarOption, LayoutNode, SchemaFieldInfo } from "@formbar/from-schema";
 import type { ResolvedFieldState } from "@formbar/react-schema";
 import { isDemoFieldDisabled, isDemoSchemaDisabled } from "./demo-field-disabled";
 
@@ -43,20 +38,13 @@ function createFieldEntry(
 ): ArrayFieldEntry {
 	const field = fieldMap.get(path);
 	const key = path.split(".").pop() ?? "";
-	const prepared = optionsByPath.has(path) ? optionsByPath.get(path) : getFieldFormbarOptions(field);
 	return {
 		key,
 		label: field?.metadata?.title ?? key,
-		options: toRenderableOptions(prepared),
+		options: toRenderableOptions(optionsByPath.get(path)),
 		fieldType: field?.type ?? "string",
 		disabled: parentDisabled || isDemoFieldDisabled(field, fieldStates?.get(path)),
 	};
-}
-
-function getFieldFormbarOptions(field: SchemaFieldInfo | undefined): readonly FormbarOption[] | undefined {
-	const metadata = field?.metadata;
-	if (!metadata || (!Array.isArray(metadata.enum) && !Array.isArray(metadata.options))) return undefined;
-	return normalizeFormbarOptions(metadata).options;
 }
 
 function createSchemaFieldEntries(
@@ -68,24 +56,14 @@ function createSchemaFieldEntries(
 	const properties = (itemSchema?.properties ?? {}) as Record<string, Record<string, unknown>>;
 	return Object.entries(properties).map(([key, propSchema]) => {
 		const path = arrayPath ? `${arrayPath}.${key}` : key;
-		const prepared = optionsByPath.has(path) ? optionsByPath.get(path) : getSchemaFormbarOptions(propSchema);
 		return {
 			key,
 			label: (propSchema.title as string) ?? key,
-			options: toRenderableOptions(prepared),
+			options: toRenderableOptions(optionsByPath.get(path)),
 			fieldType: propSchema.type as string,
 			disabled: parentDisabled || isDemoSchemaDisabled(propSchema),
 		};
 	});
-}
-
-export function getSchemaFormbarOptions(
-	schema: Record<string, unknown> | undefined,
-): readonly FormbarOption[] | undefined {
-	const formbar = schema?.["x-formbar"] as Record<string, unknown> | undefined;
-	const enumValues = schema?.enum;
-	if (!Array.isArray(enumValues) && !Array.isArray(formbar?.options)) return undefined;
-	return toRenderableOptions(normalizeFormbarOptions({ enum: enumValues, options: formbar?.options }).options);
 }
 
 export function toRenderableOptions(

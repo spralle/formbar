@@ -36,27 +36,19 @@ interface DemoFormRootProps {
 	readonly responsive?: boolean;
 }
 
-export function DemoFormRoot({
-	schema,
-	data,
-	layout: layoutOverride,
-	onChange,
-	responsive: _responsive,
-}: DemoFormRootProps) {
+export function DemoFormRoot(props: DemoFormRootProps) {
+	const { formData, renderContext, layout } = useDemoFormRootState(props);
+	return <DemoFormCards formData={formData} renderContext={renderContext} layout={layout} />;
+}
+
+function useDemoFormRootState({ schema, data, layout: layoutOverride, onChange }: DemoFormRootProps) {
 	const { form, fields, layout, optionsByPath, fieldStates } = useSchemaForm(schema, {
 		initialData: data,
 		layoutOverride: layoutOverride as LayoutNode | undefined,
 	});
 	const [formData, setFormData] = useState<Record<string, unknown>>(data);
-
-	const fieldMap = useMemo(() => {
-		const map = new Map<string, SchemaFieldInfo>();
-		for (const f of fields) map.set(f.path, f);
-		return map;
-	}, [fields]);
-
+	const fieldMap = useMemo(() => indexFields(fields), [fields]);
 	const arrayItemsMap = useMemo(() => buildArrayItemsMap(schema), [schema]);
-
 	const handleChange = useCallback(
 		(path: string, value: unknown) => {
 			setFormData((prev) => ({ ...prev, [path]: value }));
@@ -65,7 +57,20 @@ export function DemoFormRoot({
 		[onChange],
 	);
 	const renderContext = { form, fieldMap, optionsByPath, fieldStates, onChange: handleChange, arrayItemsMap };
+	return { formData, renderContext, layout };
+}
 
+function indexFields(fields: readonly SchemaFieldInfo[]): Map<string, SchemaFieldInfo> {
+	return new Map(fields.map((field) => [field.path, field]));
+}
+
+interface DemoFormCardsProps {
+	readonly formData: Record<string, unknown>;
+	readonly renderContext: DemoRenderContext;
+	readonly layout: LayoutNode;
+}
+
+function DemoFormCards({ formData, renderContext, layout }: DemoFormCardsProps) {
 	return (
 		<>
 			<Card className="border-border">

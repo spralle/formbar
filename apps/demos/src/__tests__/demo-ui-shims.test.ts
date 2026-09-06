@@ -4,7 +4,7 @@ import type { ChangeEvent, ReactElement, ReactNode } from "react";
 import { Children, createElement, isValidElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { ArrayRenderer, getSchemaFormbarOptions } from "../renderers/ArrayRenderer";
+import { ArrayRenderer } from "../renderers/ArrayRenderer";
 import { createRadioOptionId } from "../renderers/demo-control-ids";
 import { isDemoFieldDisabled, isDemoSchemaDisabled } from "../renderers/demo-field-disabled";
 import {
@@ -36,22 +36,6 @@ describe("demo control shims", () => {
 			expect(getSelectedFormbarOptionKey(options, option.value)).toBe(key);
 			expect(getFormbarOptionByKey(options, key)?.value).toBe(option.value);
 		}
-	});
-
-	it("normalizes enum-backed and choice-only primitive array item options", () => {
-		expect(
-			getSchemaFormbarOptions({
-				enum: [1, "1"],
-				"x-formbar": { options: [{ value: "1", title: "String one" }, 1] },
-			}),
-		).toEqual([
-			{ value: 1, title: "1" },
-			{ value: "1", title: "String one" },
-		]);
-		expect(getSchemaFormbarOptions({ "x-formbar": { options: [true, null] } })).toEqual([
-			{ value: true, title: "true" },
-			{ value: null, title: "null" },
-		]);
 	});
 
 	it("uses prepared array options with stable, associated row control ids", () => {
@@ -93,6 +77,58 @@ describe("demo control shims", () => {
 			expect(markup).toContain(`id="${controlId}"`);
 			expect(markup).toContain(`aria-labelledby="${controlId}-label"`);
 		}
+	});
+
+	it("keeps object-array ids unique when sanitized property names collide", () => {
+		const form = createForm({
+			initialData: {
+				rows: [
+					{ "a b": "one", "a-b": "two" },
+					{ "a b": "x", "a-b": "y" },
+				],
+			},
+		});
+		const node: LayoutNode = {
+			type: "array",
+			id: "layout-rows",
+			path: "rows",
+			children: [
+				{ type: "field", id: "layout-space", path: "rows.a b" },
+				{ type: "field", id: "layout-dash", path: "rows.a-b" },
+			],
+		};
+		const fields = new Map<string, SchemaFieldInfo>([
+			["rows", { path: "rows", type: "array", required: false, metadata: { title: "Rows" } }],
+			["rows.a b", { path: "rows.a b", type: "string", required: false, metadata: { title: "Space key" } }],
+			["rows.a-b", { path: "rows.a-b", type: "string", required: false, metadata: { title: "Dash key" } }],
+		]);
+		const markup = renderToStaticMarkup(
+			createElement(ArrayRenderer, { node, form, fieldMap: fields, optionsByPath: new Map(), onChange: vi.fn() }),
+		);
+		const labels = [...markup.matchAll(/<label[^>]*for="([^"]+)"[^>]*>(Space key|Dash key)<\/label>/g)];
+		const controlIds = labels.map((match) => match[1]);
+
+		expect(labels.map((match) => match[2])).toEqual(["Space key", "Dash key", "Space key", "Dash key"]);
+		expect(controlIds).toHaveLength(4);
+		expect(new Set(controlIds)).toHaveLength(4);
+		for (const controlId of controlIds) expect(markup).toContain(`id="${controlId}"`);
+	});
+
+	it("does not fall back to unprepared primitive item options during render", () => {
+		const form = createForm({ initialData: { tags: ["one"] } });
+		const markup = renderToStaticMarkup(
+			createElement(ArrayRenderer, {
+				node: { type: "array", id: "layout-tags", path: "tags", children: [] },
+				form,
+				fieldMap: new Map([["tags", { path: "tags", type: "array", required: false, metadata: { title: "Tags" } }]]),
+				optionsByPath: new Map(),
+				onChange: vi.fn(),
+				itemSchema: { type: "string", "x-formbar": { options: [{ value: "one", title: "Raw one" }] } },
+			}),
+		);
+
+		expect(markup).not.toContain("Raw one");
+		expect(markup).toMatch(/<input[^>]*id="/);
 	});
 
 	it("associates primitive array selects with the visible array label", () => {

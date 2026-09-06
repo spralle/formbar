@@ -3,18 +3,11 @@ import type { FormbarOption, LayoutNode, SchemaFieldInfo } from "@formbar/from-s
 import type { ResolvedFieldState } from "@formbar/react-schema";
 import React, { type ReactNode, useId, useMemo } from "react";
 import { Badge, Button, Input, Label, Switch } from "../ui";
-import {
-	type ArrayFieldEntry,
-	getArrayFieldEntries,
-	getSchemaFormbarOptions,
-	toRenderableOptions,
-} from "./array-renderer-options";
+import { type ArrayFieldEntry, getArrayFieldEntries, toRenderableOptions } from "./array-renderer-options";
 import { useArrayItems } from "./array-renderer-state";
 import { toIdPart } from "./demo-control-ids";
 import { isDemoFieldDisabled, isDemoSchemaDisabled } from "./demo-field-disabled";
 import { FormbarOptionsSelect } from "./formbar-options-control";
-
-export { getSchemaFormbarOptions } from "./array-renderer-options";
 
 export interface ArrayRendererProps {
 	readonly node: LayoutNode;
@@ -77,9 +70,8 @@ function useArrayPresentation(
 	const arrayId = `demo-array-${toIdPart(node.path ?? node.id)}-${toIdPart(generatedId)}`;
 	const primitiveOptions = useMemo(() => {
 		const path = node.path ? `${node.path}[]` : "";
-		const prepared = path && optionsByPath.has(path) ? optionsByPath.get(path) : getSchemaFormbarOptions(itemSchema);
-		return toRenderableOptions(prepared);
-	}, [itemSchema, node.path, optionsByPath]);
+		return toRenderableOptions(path ? optionsByPath.get(path) : undefined);
+	}, [node.path, optionsByPath]);
 	const fieldEntries = useMemo(
 		() => getArrayFieldEntries(node, itemSchema, fieldMap, optionsByPath, fieldStates, disabled),
 		[node, itemSchema, fieldMap, optionsByPath, fieldStates, disabled],
@@ -223,22 +215,13 @@ function renderObjectArrayItem(props: ArrayItemProps & { readonly item: object }
 	return (
 		<div className="flex items-start gap-2">
 			<div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-md border border-border-muted p-3">
-				{fieldEntries.map(({ key, label, options, fieldType, disabled }) => (
-					<div key={key} className="flex flex-col gap-1">
-						<Label
-							id={`${createArrayControlId(arrayId, itemKey, key)}-label`}
-							htmlFor={createArrayControlId(arrayId, itemKey, key)}
-							className="text-xs text-muted-foreground"
-						>
-							{label}
-						</Label>
-						{renderArrayItemField(key, record, fieldType, options, disabled, arrayId, itemKey, (newValue) => {
-							const newItems = [...items];
-							newItems[index] = { ...record, [key]: newValue };
-							updateItems(newItems);
-						})}
-					</div>
-				))}
+				{fieldEntries.map((entry, fieldIndex) =>
+					renderObjectArrayField(entry, fieldIndex, arrayId, itemKey, record, (newValue) => {
+						const newItems = [...items];
+						newItems[index] = { ...record, [entry.key]: newValue };
+						updateItems(newItems);
+					}),
+				)}
 			</div>
 			<Button
 				variant="ghost"
@@ -268,7 +251,7 @@ interface PrimitiveArrayItemProps {
 
 function renderPrimitiveArrayItem(props: PrimitiveArrayItemProps): ReactNode {
 	const disabled = props.fieldDisabled || isDemoSchemaDisabled(props.itemSchema);
-	const controlId = createArrayControlId(props.arrayId, props.itemKey, "item");
+	const controlId = `${props.arrayId}-${toIdPart(props.itemKey)}-item`;
 	const updateItem = (newValue: unknown) => {
 		const newItems = [...props.items];
 		newItems[props.index] = newValue;
@@ -311,56 +294,90 @@ function renderPrimitiveArrayItem(props: PrimitiveArrayItemProps): ReactNode {
 	);
 }
 
-function renderArrayItemField(
-	key: string,
-	record: Record<string, unknown>,
-	fieldType: string,
-	options: readonly FormbarOption[] | undefined,
-	disabled: boolean,
+function renderObjectArrayField(
+	entry: ArrayFieldEntry,
+	fieldIndex: number,
 	arrayId: string,
 	itemKey: string,
+	record: Record<string, unknown>,
 	onChange: (value: unknown) => void,
 ): ReactNode {
-	const controlId = createArrayControlId(arrayId, itemKey, key);
-	if (options) {
+	const controlId = createObjectArrayControlId(arrayId, itemKey, entry.key, fieldIndex);
+	return (
+		<div key={entry.key} className="flex flex-col gap-1">
+			<Label id={`${controlId}-label`} htmlFor={controlId} className="text-xs text-muted-foreground">
+				{entry.label}
+			</Label>
+			{renderArrayItemField(entry, record, controlId, onChange)}
+		</div>
+	);
+}
+
+function renderArrayItemField(
+	entry: ArrayFieldEntry,
+	record: Record<string, unknown>,
+	controlId: string,
+	onChange: (value: unknown) => void,
+): ReactNode {
+	if (entry.options) {
 		return (
 			<FormbarOptionsSelect
-				options={options}
-				value={record[key]}
+				options={entry.options}
+				value={record[entry.key]}
 				onChange={onChange}
-				fieldDisabled={disabled}
+				fieldDisabled={entry.disabled}
 				a11y={{ controlId, labelId: `${controlId}-label`, describedBy: undefined, invalid: false }}
 				className="flex-1"
 				triggerClassName="h-8 text-xs"
 			/>
 		);
 	}
-	if (fieldType === "boolean") {
-		return <Switch id={controlId} checked={Boolean(record[key])} onCheckedChange={onChange} disabled={disabled} />;
+	if (entry.fieldType === "boolean") {
+		return renderBooleanArrayField(entry, record, controlId, onChange);
 	}
-	if (fieldType === "number" || fieldType === "integer") {
-		return (
-			<Input
-				id={controlId}
-				type="number"
-				className="h-8 text-xs"
-				value={String(record[key] ?? "")}
-				onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}
-				disabled={disabled}
-			/>
-		);
+	if (entry.fieldType === "number" || entry.fieldType === "integer") {
+		return renderNumberArrayField(entry, record, controlId, onChange);
 	}
 	return (
 		<Input
 			id={controlId}
 			className="h-8 text-xs"
-			value={String(record[key] ?? "")}
+			value={String(record[entry.key] ?? "")}
 			onChange={(e) => onChange(e.target.value)}
-			disabled={disabled}
+			disabled={entry.disabled}
 		/>
 	);
 }
 
-function createArrayControlId(arrayId: string, itemKey: string, fieldKey: string): string {
-	return `${arrayId}-${toIdPart(itemKey)}-${toIdPart(fieldKey)}`;
+function renderBooleanArrayField(
+	entry: ArrayFieldEntry,
+	record: Record<string, unknown>,
+	controlId: string,
+	onChange: (value: unknown) => void,
+): ReactNode {
+	return (
+		<Switch id={controlId} checked={Boolean(record[entry.key])} onCheckedChange={onChange} disabled={entry.disabled} />
+	);
+}
+
+function renderNumberArrayField(
+	entry: ArrayFieldEntry,
+	record: Record<string, unknown>,
+	controlId: string,
+	onChange: (value: unknown) => void,
+): ReactNode {
+	return (
+		<Input
+			id={controlId}
+			type="number"
+			className="h-8 text-xs"
+			value={String(record[entry.key] ?? "")}
+			onChange={(event) => onChange(event.target.value ? Number(event.target.value) : undefined)}
+			disabled={entry.disabled}
+		/>
+	);
+}
+
+function createObjectArrayControlId(arrayId: string, itemKey: string, fieldKey: string, fieldIndex: number): string {
+	return `${arrayId}-${toIdPart(itemKey)}-field-${fieldIndex}-${toIdPart(fieldKey)}`;
 }

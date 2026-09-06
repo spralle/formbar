@@ -118,6 +118,8 @@ const zodSchema = z.object({
 });
 ```
 
+Formbar intentionally does not inspect Zod internals. With the current Scheman metadata model, metadata attached to a Zod array element schema is not exposed as a field, so primitive-array item options from Zod cannot yet be prepared at `path[]`. Scalar Zod fields continue to work as shown above. JSON Schema array item annotations are prepared because their source structure is public, including supported local `$ref` item schemas.
+
 Objects placed directly in standard `enum` are enum values and are stored as objects. They are not interpreted as Formbar option records; put presentation records in `x-formbar.options`.
 
 ## Dependencies

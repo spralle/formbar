@@ -5,6 +5,7 @@ import type {
 	FormbarOptionWarning,
 	LayoutNode,
 	SchemaFieldInfo,
+	SchemaFormResult,
 	SchemaMetadata,
 } from "@formbar/from-schema";
 import { createSchemaForm } from "@formbar/from-schema";
@@ -83,45 +84,15 @@ export function useSchemaForm<TData, TUi>(
 	schema: unknown,
 	options?: UseSchemaFormOptions<TData, TUi>,
 ): UseSchemaFormResult<TData, TUi> {
-	const prepared = useMemo(
-		() =>
-			createSchemaForm(schema, {
-				layoutOverride: options?.layoutOverride,
-				validators: options?.validators,
-				resolveOptionTitle: options?.resolveOptionTitle,
-			}),
-		[schema, options?.layoutOverride, options?.validators, options?.resolveOptionTitle],
-	);
-
-	const mergedInitialData = useMemo(() => {
-		if (Object.keys(prepared.defaults).length === 0) return options?.initialData;
-		return { ...prepared.defaults, ...(options?.initialData ?? {}) } as TData;
-	}, [prepared.defaults, options?.initialData]);
-
+	const prepared = usePreparedSchema(schema, options);
+	const mergedInitialData = useMergedInitialData<TData>(prepared.defaults, options?.initialData);
 	const form = useForm<TData, TUi>({
 		...getFormOptions(options),
 		schema,
 		...(mergedInitialData === undefined ? {} : { initialData: mergedInitialData }),
 		validators: prepared.validators,
 	});
-
-	const fieldPaths = useMemo(() => prepared.fields.map((f: SchemaFieldInfo) => f.path), [prepared.fields]);
-
-	// Select uiState with shallow equality to avoid recomputing fieldStates every render.
-	// FormState.uiState is typed as TUi; we treat it as a string-keyed record for arbiter lookups.
-	const uiState = useFormSelector(
-		form,
-		(state) => (state.uiState ?? EMPTY_UI_STATE) as Readonly<Record<string, unknown>>,
-		shallowEqualRecord,
-	);
-
-	const fieldStates = useMemo(() => resolveFieldStates(uiState, fieldPaths), [uiState, fieldPaths]);
-
-	const layout = useMemo(
-		() => pruneHiddenFields(prepared.layout, fieldStates) ?? { ...prepared.layout, children: [] },
-		[prepared.layout, fieldStates],
-	);
-
+	const { fieldStates, layout } = useSchemaPresentation(form, prepared.fields, prepared.layout);
 	return {
 		form,
 		fields: prepared.fields,
@@ -131,4 +102,48 @@ export function useSchemaForm<TData, TUi>(
 		optionsByPath: prepared.optionsByPath,
 		warnings: prepared.warnings,
 	};
+}
+
+function usePreparedSchema<TData, TUi>(
+	schema: unknown,
+	options: UseSchemaFormOptions<TData, TUi> | undefined,
+): SchemaFormResult {
+	return useMemo(
+		() =>
+			createSchemaForm(schema, {
+				layoutOverride: options?.layoutOverride,
+				validators: options?.validators,
+				resolveOptionTitle: options?.resolveOptionTitle,
+			}),
+		[schema, options?.layoutOverride, options?.validators, options?.resolveOptionTitle],
+	);
+}
+
+function useMergedInitialData<TData>(
+	defaults: Readonly<Record<string, unknown>>,
+	initialData: TData | undefined,
+): TData | undefined {
+	return useMemo(() => {
+		if (Object.keys(defaults).length === 0) return initialData;
+		return { ...defaults, ...(initialData ?? {}) } as TData;
+	}, [defaults, initialData]);
+}
+
+function useSchemaPresentation<TData, TUi>(
+	form: FormApi<TData, TUi>,
+	fields: readonly SchemaFieldInfo[],
+	baseLayout: LayoutNode,
+): { readonly fieldStates: ReadonlyMap<string, ResolvedFieldState>; readonly layout: LayoutNode } {
+	const fieldPaths = useMemo(() => fields.map((field) => field.path), [fields]);
+	const uiState = useFormSelector(
+		form,
+		(state) => (state.uiState ?? EMPTY_UI_STATE) as Readonly<Record<string, unknown>>,
+		shallowEqualRecord,
+	);
+	const fieldStates = useMemo(() => resolveFieldStates(uiState, fieldPaths), [uiState, fieldPaths]);
+	const layout = useMemo(
+		() => pruneHiddenFields(baseLayout, fieldStates) ?? { ...baseLayout, children: [] },
+		[baseLayout, fieldStates],
+	);
+	return { fieldStates, layout };
 }

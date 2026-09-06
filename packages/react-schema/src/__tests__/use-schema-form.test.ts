@@ -93,4 +93,32 @@ describe("useSchemaForm option warnings", () => {
 		expect(result.optionsByPath.get("role")).toEqual([{ value: "active", title: "Resolved active" }]);
 		expect(vi.mocked(useForm).mock.calls[0]?.[0]).not.toHaveProperty("resolveOptionTitle");
 	});
+
+	it("surfaces primitive array item preparation warnings once", () => {
+		const result = useSchemaForm<FormData, Record<string, unknown>>({
+			type: "object",
+			properties: {
+				tags: {
+					type: "array",
+					items: {
+						type: "string",
+						enum: ["kept"],
+						"x-formbar": {
+							options: [
+								{ value: "missing", title: "Missing" },
+								{ value: "kept", title: "Kept" },
+								{ value: "kept", title: "Duplicate" },
+							],
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.optionsByPath.get("tags[]")).toEqual([{ value: "kept", title: "Kept" }]);
+		expect(result.warnings.map(({ code, path, index }) => ({ code, path, index }))).toEqual([
+			{ code: "FORMBAR_OPTION_UNMATCHED", path: "tags[]", index: 0 },
+			{ code: "FORMBAR_OPTION_DUPLICATE", path: "tags[]", index: 2 },
+		]);
+	});
 });

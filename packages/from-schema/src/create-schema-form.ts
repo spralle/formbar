@@ -54,7 +54,7 @@ export interface SchemaFormResult {
  */
 export function createSchemaForm(schema: unknown, options?: CreateSchemaFormOptions): SchemaFormResult {
 	const rawResult = ingestSchema(schema);
-	const prepared = prepareSchemaOptions(applyFormbarMetadata(rawResult), options?.resolveOptionTitle);
+	const prepared = prepareSchemaOptions(applyFormbarMetadata(rawResult), schema, options?.resolveOptionTitle);
 	const result = prepared.result;
 	let layout = options?.layoutOverride ?? compileLayout(result);
 
