@@ -1,37 +1,64 @@
+import { ingestSchema } from "@scheman/core";
 import { describe, expect, test } from "vitest";
+import { z as z3Current } from "zod3-current";
 import { z as z3Min } from "zod3-min";
 import { z as z4Current } from "zod4-current";
+import { z as z4Min } from "zod4-min";
 import { createSchemaForm } from "../create-schema-form.js";
 
-const options = [{ label: "Enabled", value: "enabled" }];
+const enumValues = ["enabled", "disabled"];
+const formbarMetadata = { widget: "radio" };
+
+function expectFormbarBoundary(schema: unknown) {
+	const generic = ingestSchema(schema);
+	const genericMetadata = generic.fields[0]?.metadata;
+
+	expect(genericMetadata?.extensions?.formbar).toEqual(formbarMetadata);
+	expect(genericMetadata?.enum).toEqual(enumValues);
+
+	const elevated = createSchemaForm(schema);
+	const elevatedMetadata = elevated.fields[0]?.metadata;
+
+	expect(elevatedMetadata).toMatchObject({ ...formbarMetadata, enum: enumValues });
+	expect(elevatedMetadata?.extensions).toBeUndefined();
+}
 
 describe("Formbar metadata with supported Zod versions", () => {
-	test("elevates metadata from the minimum supported Zod 3.24", () => {
-		const field = z3Min.enum(["enabled", "disabled"]);
+	test("supports the exact Zod 3 minimum, 3.24.0", () => {
+		const field = z3Min.enum(enumValues as [string, ...string[]]);
 		(field._def as z3Min.ZodTypeDef & { metadata?: unknown }).metadata = {
-			formbar: { widget: "radio", options },
+			formbar: formbarMetadata,
 		};
 
-		const result = createSchemaForm(z3Min.object({ state: field }));
-
-		expect(result.fields[0]).toMatchObject({
-			path: "state",
-			metadata: { widget: "radio", options },
-		});
+		expectFormbarBoundary(z3Min.object({ state: field }));
 	});
 
-	test("elevates metadata from the current supported Zod 4", () => {
-		const schema = z4Current.object({
-			state: z4Current.enum(["enabled", "disabled"]).meta({
-				formbar: { widget: "radio", options },
+	test("supports the current stable Zod 3, 3.25.76", () => {
+		const field = z3Current.enum(enumValues as [string, ...string[]]);
+		(field._def as z3Current.ZodTypeDef & { metadata?: unknown }).metadata = {
+			formbar: formbarMetadata,
+		};
+
+		expectFormbarBoundary(z3Current.object({ state: field }));
+	});
+
+	test("supports the exact Zod 4 minimum, 4.0.0", () => {
+		const schema = z4Min.object({
+			state: z4Min.enum(enumValues).meta({
+				formbar: formbarMetadata,
 			}),
 		});
 
-		const result = createSchemaForm(schema);
+		expectFormbarBoundary(schema);
+	});
 
-		expect(result.fields[0]).toMatchObject({
-			path: "state",
-			metadata: { widget: "radio", options },
+	test("supports the current stable Zod 4, 4.5.4", () => {
+		const schema = z4Current.object({
+			state: z4Current.enum(enumValues).meta({
+				formbar: formbarMetadata,
+			}),
 		});
+
+		expectFormbarBoundary(schema);
 	});
 });

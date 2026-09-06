@@ -40,7 +40,9 @@
 	},
 	"devDependencies": {
 		"zod": "^4.0.0",
+		"zod3-current": "npm:zod@3.25.76",
 		"zod3-min": "npm:zod@3.24.0",
-		"zod4-current": "npm:zod@4.5.4"
+		"zod4-current": "npm:zod@4.5.4",
+		"zod4-min": "npm:zod@4.0.0"
 	}
 }
