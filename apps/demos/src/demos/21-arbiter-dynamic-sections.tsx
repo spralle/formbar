@@ -1,6 +1,7 @@
 import { createArbiterPlugin } from "@formbar/arbiter";
 import { useForm } from "@formbar/react";
 import { useMemo } from "react";
+import { ArbiterStateInspector } from "../renderers/ArbiterStateInspector";
 import { DemoShell } from "../renderers/DemoShell";
 import { Card, CardContent, CardHeader, CardTitle, cn } from "../ui";
 
@@ -83,17 +84,147 @@ function SectionWrapper({ title, children }: { readonly title: string; readonly 
 	);
 }
 
-export function ArbiterDynamicSectionsDemo() {
+function useSectionsForm() {
 	const plugins = useMemo(() => [createArbiterPlugin({ rules: arbiterRules })], []);
-
-	const form = useForm<FormData, UiState>({
+	return useForm<FormData, UiState>({
 		initialData: arbiterSectionsData,
 		initialUiState: arbiterSectionsUiState,
 		plugins,
 	});
+}
 
+function TextInput(props: {
+	readonly label: string;
+	readonly value: string;
+	readonly onChange: (value: string) => void;
+	readonly wide?: boolean;
+	readonly placeholder?: string;
+}) {
+	return (
+		<label className={cn("flex flex-col gap-1", props.wide && "sm:col-span-2")}>
+			<span className="text-xs text-muted-foreground">{props.label}</span>
+			<input
+				className={inputClass}
+				value={props.value}
+				onChange={(event) => props.onChange(event.target.value)}
+				placeholder={props.placeholder}
+			/>
+		</label>
+	);
+}
+
+function NumberInput(props: {
+	readonly label: string;
+	readonly value: number;
+	readonly onChange: (value: number) => void;
+}) {
+	return (
+		<label className="flex flex-col gap-1">
+			<span className="text-xs text-muted-foreground">{props.label}</span>
+			<input
+				type="number"
+				className={inputClass}
+				value={props.value || ""}
+				onChange={(event) => props.onChange(Number(event.target.value) || 0)}
+			/>
+		</label>
+	);
+}
+
+function CoverageTypeField({ form }: { readonly form: ReturnType<typeof useSectionsForm> }) {
+	return (
+		<label className="flex flex-col gap-1">
+			<span className="text-sm font-medium text-foreground">Coverage Type</span>
+			<select
+				className={inputClass}
+				value={form.getState().data.coverageType}
+				onChange={(e) => form.setValue("coverageType", e.target.value)}
+			>
+				<option value="">Select coverage...</option>
+				<option value="auto">Auto</option>
+				<option value="home">Home</option>
+				<option value="life">Life</option>
+			</select>
+		</label>
+	);
+}
+
+function VehicleSection({ form }: { readonly form: ReturnType<typeof useSectionsForm> }) {
+	const { data } = form.getState();
+	return (
+		<SectionWrapper title="Vehicle Information">
+			<TextInput label="Make" value={data.make} onChange={(value) => form.setValue("make", value)} />
+			<TextInput label="Model" value={data.model} onChange={(value) => form.setValue("model", value)} />
+			<NumberInput label="Year" value={data.year} onChange={(value) => form.setValue("year", value)} />
+		</SectionWrapper>
+	);
+}
+
+function PropertySection({ form }: { readonly form: ReturnType<typeof useSectionsForm> }) {
+	const { data } = form.getState();
+	return (
+		<SectionWrapper title="Property Information">
+			<TextInput label="Address" value={data.address} onChange={(value) => form.setValue("address", value)} wide />
+			<NumberInput label="Square Footage" value={data.sqft} onChange={(value) => form.setValue("sqft", value)} />
+			<NumberInput label="Year Built" value={data.yearBuilt} onChange={(value) => form.setValue("yearBuilt", value)} />
+		</SectionWrapper>
+	);
+}
+
+function HealthSection({ form }: { readonly form: ReturnType<typeof useSectionsForm> }) {
+	const { data } = form.getState();
+	return (
+		<SectionWrapper title="Health Information">
+			<NumberInput label="Age" value={data.age} onChange={(value) => form.setValue("age", value)} />
+			<label className="flex items-center gap-2">
+				<input
+					type="checkbox"
+					checked={data.smoker}
+					onChange={(e) => form.setValue("smoker", e.target.checked)}
+					className="rounded border-border"
+				/>
+				<span className="text-xs text-muted-foreground">Smoker</span>
+			</label>
+			<TextInput
+				label="Pre-existing Conditions"
+				value={data.conditions}
+				onChange={(value) => form.setValue("conditions", value)}
+				placeholder="None, or describe..."
+				wide
+			/>
+		</SectionWrapper>
+	);
+}
+
+function DynamicSections({ form }: { readonly form: ReturnType<typeof useSectionsForm> }) {
+	const { uiState } = form.getState();
+	return (
+		<>
+			{uiState.showAutoSection && <VehicleSection form={form} />}
+			{uiState.showHomeSection && <PropertySection form={form} />}
+			{uiState.showLifeSection && <HealthSection form={form} />}
+		</>
+	);
+}
+
+function SectionsCard({ form }: { readonly form: ReturnType<typeof useSectionsForm> }) {
 	const { data, uiState } = form.getState();
+	return (
+		<Card className="border-border">
+			<CardHeader>
+				<CardTitle className="text-foreground">Insurance Quote</CardTitle>
+			</CardHeader>
+			<CardContent className="flex flex-col gap-4">
+				<CoverageTypeField form={form} />
+				<DynamicSections form={form} />
+				<ArbiterStateInspector data={data} uiState={uiState} dataClassName="mt-2" />
+			</CardContent>
+		</Card>
+	);
+}
 
+export function ArbiterDynamicSectionsDemo() {
+	const form = useSectionsForm();
 	return (
 		<DemoShell
 			title="Arbiter: Dynamic Sections"
@@ -103,128 +234,7 @@ export function ArbiterDynamicSectionsDemo() {
 			schema={schema}
 			codeBlocks={[{ title: "Arbiter Rules", code: arbiterRules as unknown as object, defaultOpen: true }]}
 		>
-			<Card className="border-border">
-				<CardHeader>
-					<CardTitle className="text-foreground">Insurance Quote</CardTitle>
-				</CardHeader>
-				<CardContent className="flex flex-col gap-4">
-					<label className="flex flex-col gap-1">
-						<span className="text-sm font-medium text-foreground">Coverage Type</span>
-						<select
-							className={inputClass}
-							value={data.coverageType}
-							onChange={(e) => form.setValue("coverageType", e.target.value)}
-						>
-							<option value="">Select coverage...</option>
-							<option value="auto">Auto</option>
-							<option value="home">Home</option>
-							<option value="life">Life</option>
-						</select>
-					</label>
-
-					{uiState.showAutoSection && (
-						<SectionWrapper title="Vehicle Information">
-							<label className="flex flex-col gap-1">
-								<span className="text-xs text-muted-foreground">Make</span>
-								<input
-									className={inputClass}
-									value={data.make}
-									onChange={(e) => form.setValue("make", e.target.value)}
-								/>
-							</label>
-							<label className="flex flex-col gap-1">
-								<span className="text-xs text-muted-foreground">Model</span>
-								<input
-									className={inputClass}
-									value={data.model}
-									onChange={(e) => form.setValue("model", e.target.value)}
-								/>
-							</label>
-							<label className="flex flex-col gap-1">
-								<span className="text-xs text-muted-foreground">Year</span>
-								<input
-									type="number"
-									className={inputClass}
-									value={data.year || ""}
-									onChange={(e) => form.setValue("year", Number(e.target.value) || 0)}
-								/>
-							</label>
-						</SectionWrapper>
-					)}
-
-					{uiState.showHomeSection && (
-						<SectionWrapper title="Property Information">
-							<label className="flex flex-col gap-1 sm:col-span-2">
-								<span className="text-xs text-muted-foreground">Address</span>
-								<input
-									className={inputClass}
-									value={data.address}
-									onChange={(e) => form.setValue("address", e.target.value)}
-								/>
-							</label>
-							<label className="flex flex-col gap-1">
-								<span className="text-xs text-muted-foreground">Square Footage</span>
-								<input
-									type="number"
-									className={inputClass}
-									value={data.sqft || ""}
-									onChange={(e) => form.setValue("sqft", Number(e.target.value) || 0)}
-								/>
-							</label>
-							<label className="flex flex-col gap-1">
-								<span className="text-xs text-muted-foreground">Year Built</span>
-								<input
-									type="number"
-									className={inputClass}
-									value={data.yearBuilt || ""}
-									onChange={(e) => form.setValue("yearBuilt", Number(e.target.value) || 0)}
-								/>
-							</label>
-						</SectionWrapper>
-					)}
-
-					{uiState.showLifeSection && (
-						<SectionWrapper title="Health Information">
-							<label className="flex flex-col gap-1">
-								<span className="text-xs text-muted-foreground">Age</span>
-								<input
-									type="number"
-									className={inputClass}
-									value={data.age || ""}
-									onChange={(e) => form.setValue("age", Number(e.target.value) || 0)}
-								/>
-							</label>
-							<label className="flex items-center gap-2">
-								<input
-									type="checkbox"
-									checked={data.smoker}
-									onChange={(e) => form.setValue("smoker", e.target.checked)}
-									className="rounded border-border"
-								/>
-								<span className="text-xs text-muted-foreground">Smoker</span>
-							</label>
-							<label className="flex flex-col gap-1 sm:col-span-2">
-								<span className="text-xs text-muted-foreground">Pre-existing Conditions</span>
-								<input
-									className={inputClass}
-									value={data.conditions}
-									onChange={(e) => form.setValue("conditions", e.target.value)}
-									placeholder="None, or describe..."
-								/>
-							</label>
-						</SectionWrapper>
-					)}
-
-					<div className="rounded-md bg-surface-inset border border-border-muted p-3 mt-2">
-						<p className="text-xs font-medium text-muted-foreground mb-1">Form Data</p>
-						<pre className="text-xs text-code-foreground font-mono">{JSON.stringify(data, null, 2)}</pre>
-					</div>
-					<div className="rounded-md bg-surface-inset border border-border-muted p-3">
-						<p className="text-xs font-medium text-muted-foreground mb-1">UI State</p>
-						<pre className="text-xs text-code-foreground font-mono">{JSON.stringify(uiState, null, 2)}</pre>
-					</div>
-				</CardContent>
-			</Card>
+			<SectionsCard form={form} />
 		</DemoShell>
 	);
 }
