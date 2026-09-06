@@ -68,14 +68,15 @@ function processField(field: SchemaFieldInfo): SchemaFieldInfo {
 	// Remove formbar from extensions
 	const { formbar: _, ...remainingExtensions } = extensions;
 	const hasRemainingExtensions = Object.keys(remainingExtensions).length > 0;
+	const { extensions: _extensions, ...metadataWithoutExtensions } = field.metadata;
 
 	const newMetadata: SchemaFieldMetadata = {
-		...field.metadata,
+		...metadataWithoutExtensions,
 		...elevated,
 		...(Object.keys(extra).length > 0
 			? { extra: { ...((field.metadata?.extra as Record<string, unknown>) ?? {}), ...extra } }
 			: {}),
-		...(hasRemainingExtensions ? { extensions: remainingExtensions } : { extensions: undefined }),
+		...(hasRemainingExtensions ? { extensions: remainingExtensions } : {}),
 	};
 
 	// Clean up undefined extensions
