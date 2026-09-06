@@ -1,5 +1,5 @@
 import type { FormApi } from "@formbar/core";
-import type { LayoutNode, SchemaFieldInfo } from "@formbar/from-schema";
+import type { FormbarOption, LayoutNode, SchemaFieldInfo } from "@formbar/from-schema";
 import { isSectionNode } from "@formbar/from-schema";
 import { useSchemaForm } from "@formbar/react-schema";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -104,10 +104,10 @@ const layouts: Record<LayoutMode, LayoutNode> = {
 	accordion: accordionLayout,
 };
 
-const RENDERER_CODE = `function renderCustomNode(node, form, fieldMap, onChange) {
+const RENDERER_CODE = `function renderCustomNode(node, form, fieldMap, optionsByPath, onChange) {
   if (node.type === 'field' && node.path) {
     const field = fieldMap.get(node.path);
-    return <DemoFormField form={form} field={field} onChange={onChange} />;
+    return <DemoFormField form={form} field={field} options={optionsByPath.get(field.path)} onChange={onChange} />;
   }
 
   if (node.type === 'section') {
@@ -157,72 +157,156 @@ const RENDERER_CODE = `function renderCustomNode(node, form, fieldMap, onChange)
   return <div>{node.children?.map(child => renderCustomNode(child, ...))}</div>;
 }`;
 
-function renderCustomNode(
-	node: LayoutNode,
-	form: FormApi,
-	fieldMap: Map<string, SchemaFieldInfo>,
-	onChange: (path: string, value: unknown) => void,
-): React.ReactNode {
+interface CustomLayoutRenderContext {
+	readonly form: FormApi;
+	readonly fieldMap: Map<string, SchemaFieldInfo>;
+	readonly optionsByPath: ReadonlyMap<string, readonly FormbarOption[]>;
+	readonly onChange: (path: string, value: unknown) => void;
+}
+
+function renderCustomNode(node: LayoutNode, context: CustomLayoutRenderContext): React.ReactNode {
 	if (node.type === "field" && node.path) {
-		const field = fieldMap.get(node.path);
+		const field = context.fieldMap.get(node.path);
 		if (!field) return null;
-		return <DemoFormField key={node.id} form={form} field={field} onChange={onChange} />;
-	}
-
-	if (isSectionNode(node)) {
-		const title = node.props?.title;
 		return (
-			<div key={node.id} className="flex flex-col gap-3">
-				{title && <h3 className="text-sm font-semibold text-foreground border-b border-border pb-1">{title}</h3>}
-				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-					{node.children?.map((child) => renderCustomNode(child, form, fieldMap, onChange))}
-				</div>
-			</div>
+			<DemoFormField
+				key={node.id}
+				form={context.form}
+				field={field}
+				options={context.optionsByPath.get(field.path)}
+				onChange={context.onChange}
+			/>
 		);
 	}
-
-	if (node.type === "tabs") {
-		return (
-			<Tabs defaultValue={node.children?.[0]?.id}>
-				<TabsList>
-					{node.children?.map((s) => (
-						<TabsTrigger key={s.id} value={s.id}>
-							{(isSectionNode(s) ? s.props?.title : undefined) ?? s.id}
-						</TabsTrigger>
-					))}
-				</TabsList>
-				{node.children?.map((child) => (
-					<TabsContent key={child.id} value={child.id} className="pt-4">
-						{renderCustomNode(child, form, fieldMap, onChange)}
-					</TabsContent>
-				))}
-			</Tabs>
-		);
-	}
-
-	if (node.type === "accordion") {
-		return (
-			<Accordion type="multiple" defaultValue={[node.children?.[0]?.id ?? ""]}>
-				{node.children?.map((child) => (
-					<AccordionItem key={child.id} value={child.id}>
-						<AccordionTrigger>{(isSectionNode(child) ? child.props?.title : undefined) ?? child.id}</AccordionTrigger>
-						<AccordionContent>{renderCustomNode(child, form, fieldMap, onChange)}</AccordionContent>
-					</AccordionItem>
-				))}
-			</Accordion>
-		);
-	}
-
-	// Fallback for group or unknown types
+	if (isSectionNode(node)) return renderCustomSection(node, context);
+	if (node.type === "tabs") return renderCustomTabs(node, context);
+	if (node.type === "accordion") return renderCustomAccordion(node, context);
 	return (
 		<div key={node.id} className="flex flex-col gap-4">
-			{node.children?.map((child) => renderCustomNode(child, form, fieldMap, onChange))}
+			{node.children?.map((child) => renderCustomNode(child, context))}
 		</div>
 	);
 }
 
+function renderCustomSection(node: LayoutNode, context: CustomLayoutRenderContext): React.ReactNode {
+	const title = isSectionNode(node) ? node.props?.title : undefined;
+	return (
+		<div key={node.id} className="flex flex-col gap-3">
+			{title && <h3 className="text-sm font-semibold text-foreground border-b border-border pb-1">{title}</h3>}
+			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+				{node.children?.map((child) => renderCustomNode(child, context))}
+			</div>
+		</div>
+	);
+}
+
+function renderCustomTabs(node: LayoutNode, context: CustomLayoutRenderContext): React.ReactNode {
+	return (
+		<Tabs defaultValue={node.children?.[0]?.id}>
+			<TabsList>
+				{node.children?.map((section) => (
+					<TabsTrigger key={section.id} value={section.id}>
+						{(isSectionNode(section) ? section.props?.title : undefined) ?? section.id}
+					</TabsTrigger>
+				))}
+			</TabsList>
+			{node.children?.map((child) => (
+				<TabsContent key={child.id} value={child.id} className="pt-4">
+					{renderCustomNode(child, context)}
+				</TabsContent>
+			))}
+		</Tabs>
+	);
+}
+
+function renderCustomAccordion(node: LayoutNode, context: CustomLayoutRenderContext): React.ReactNode {
+	return (
+		<Accordion type="multiple" defaultValue={[node.children?.[0]?.id ?? ""]}>
+			{node.children?.map((child) => (
+				<AccordionItem key={child.id} value={child.id}>
+					<AccordionTrigger>{(isSectionNode(child) ? child.props?.title : undefined) ?? child.id}</AccordionTrigger>
+					<AccordionContent>{renderCustomNode(child, context)}</AccordionContent>
+				</AccordionItem>
+			))}
+		</Accordion>
+	);
+}
+
+interface CustomLayoutViewProps {
+	readonly mode: LayoutMode;
+	readonly activeLayout: LayoutNode;
+	readonly renderContext: CustomLayoutRenderContext;
+	readonly formData: Record<string, unknown>;
+	readonly onModeChange: (mode: LayoutMode) => void;
+}
+
+function CustomLayoutView(props: CustomLayoutViewProps) {
+	return (
+		<DemoShell
+			title="Custom Layout Types"
+			description="The same vessel inspection schema rendered via three different LayoutNode JSON trees: sections (group), tabs, and accordion. The layout JSON drives the rendering — swap the tree, change the UX."
+			motivation="Demonstrates that formbar's layout system is extensible via custom node types. Define layout as JSON data, then interpret it with a custom renderer. Teams can build domain-specific form chrome without modifying the core."
+			features={[
+				"LayoutNode JSON Trees",
+				"Custom Node Types (tabs, accordion)",
+				"Layout-Driven Rendering",
+				"Mode Switching",
+				"Same Schema, Different UX",
+			]}
+			schema={schema}
+			layout={props.activeLayout}
+			codeBlocks={[{ title: "Renderer (TSX)", code: RENDERER_CODE }]}
+		>
+			<div className="flex flex-col gap-4">
+				<LayoutFormCard {...props} />
+				<LayoutFormDataCard formData={props.formData} />
+			</div>
+		</DemoShell>
+	);
+}
+
+function LayoutFormCard({ mode, activeLayout, renderContext, onModeChange }: CustomLayoutViewProps) {
+	return (
+		<Card className="border-border">
+			<CardHeader>
+				<div className="flex items-center justify-between">
+					<CardTitle className="text-foreground">Vessel Inspection</CardTitle>
+					<div className="flex gap-1">
+						{(["sections", "tabs", "accordion"] as const).map((candidate) => (
+							<Button
+								key={candidate}
+								variant={mode === candidate ? "default" : "outline"}
+								size="sm"
+								onClick={() => onModeChange(candidate)}
+							>
+								{candidate.charAt(0).toUpperCase() + candidate.slice(1)}
+							</Button>
+						))}
+					</div>
+				</div>
+			</CardHeader>
+			<CardContent>{renderCustomNode(activeLayout, renderContext)}</CardContent>
+		</Card>
+	);
+}
+
+function LayoutFormDataCard({ formData }: Pick<CustomLayoutViewProps, "formData">) {
+	return (
+		<Card className="border-border">
+			<CardHeader className="pb-2">
+				<CardTitle className="text-sm text-foreground">Form Data (JSON)</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<pre className="rounded-md bg-surface-inset p-3 text-xs text-code-foreground overflow-auto max-h-48 border border-border-muted font-mono">
+					{JSON.stringify(formData, null, 2)}
+				</pre>
+			</CardContent>
+		</Card>
+	);
+}
+
 export function CustomLayoutTypesDemo() {
-	const { form, fields } = useSchemaForm(schema, { initialData: {} as Record<string, unknown> });
+	const { form, fields, optionsByPath } = useSchemaForm(schema, { initialData: {} as Record<string, unknown> });
 	const [mode, setMode] = useState<LayoutMode>("sections");
 	const [formData, setFormData] = useState<Record<string, unknown>>({});
 
@@ -243,50 +327,15 @@ export function CustomLayoutTypesDemo() {
 	const handleChange = useCallback((path: string, value: unknown) => {
 		console.log("change", path, value);
 	}, []);
+	const renderContext = { form, fieldMap, optionsByPath, onChange: handleChange };
 
 	return (
-		<DemoShell
-			title="Custom Layout Types"
-			description="The same vessel inspection schema rendered via three different LayoutNode JSON trees: sections (group), tabs, and accordion. The layout JSON drives the rendering — swap the tree, change the UX."
-			motivation="Demonstrates that formbar's layout system is extensible via custom node types. Define layout as JSON data, then interpret it with a custom renderer. Teams can build domain-specific form chrome without modifying the core."
-			features={[
-				"LayoutNode JSON Trees",
-				"Custom Node Types (tabs, accordion)",
-				"Layout-Driven Rendering",
-				"Mode Switching",
-				"Same Schema, Different UX",
-			]}
-			schema={schema}
-			layout={activeLayout}
-			codeBlocks={[{ title: "Renderer (TSX)", code: RENDERER_CODE }]}
-		>
-			<div className="flex flex-col gap-4">
-				<Card className="border-border">
-					<CardHeader>
-						<div className="flex items-center justify-between">
-							<CardTitle className="text-foreground">Vessel Inspection</CardTitle>
-							<div className="flex gap-1">
-								{(["sections", "tabs", "accordion"] as const).map((m) => (
-									<Button key={m} variant={mode === m ? "default" : "outline"} size="sm" onClick={() => setMode(m)}>
-										{m.charAt(0).toUpperCase() + m.slice(1)}
-									</Button>
-								))}
-							</div>
-						</div>
-					</CardHeader>
-					<CardContent>{renderCustomNode(activeLayout, form, fieldMap, handleChange)}</CardContent>
-				</Card>
-				<Card className="border-border">
-					<CardHeader className="pb-2">
-						<CardTitle className="text-sm text-foreground">Form Data (JSON)</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<pre className="rounded-md bg-surface-inset p-3 text-xs text-code-foreground overflow-auto max-h-48 border border-border-muted font-mono">
-							{JSON.stringify(formData, null, 2)}
-						</pre>
-					</CardContent>
-				</Card>
-			</div>
-		</DemoShell>
+		<CustomLayoutView
+			mode={mode}
+			activeLayout={activeLayout}
+			renderContext={renderContext}
+			formData={formData}
+			onModeChange={setMode}
+		/>
 	);
 }

@@ -5,6 +5,7 @@ import { Children, createElement, isValidElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { ArrayRenderer } from "../renderers/ArrayRenderer";
+import { DemoFormField } from "../renderers/DemoFormField";
 import { createRadioOptionId } from "../renderers/demo-control-ids";
 import { isDemoFieldDisabled, isDemoSchemaDisabled } from "../renderers/demo-field-disabled";
 import {
@@ -129,6 +130,30 @@ describe("demo control shims", () => {
 
 		expect(markup).not.toContain("Raw one");
 		expect(markup).toMatch(/<input[^>]*id="/);
+	});
+
+	it("does not fall back to unprepared scalar options during render", () => {
+		const form = createForm({ initialData: { choice: "one" } });
+		const field: SchemaFieldInfo = {
+			path: "choice",
+			type: "enum",
+			required: false,
+			metadata: { enum: ["one"], options: [{ value: "one", title: "Raw one" }] },
+		};
+		const markup = renderToStaticMarkup(createElement(DemoFormField, { form, field, onChange: vi.fn() }));
+		const preparedMarkup = renderToStaticMarkup(
+			createElement(DemoFormField, {
+				form,
+				field,
+				options: [{ value: "one", title: "Prepared one" }],
+				onChange: vi.fn(),
+			}),
+		);
+
+		expect(markup).not.toContain("Raw one");
+		expect(markup).toMatch(/<input[^>]*value="one"/);
+		expect(preparedMarkup).toContain("Prepared one");
+		expect(preparedMarkup).not.toContain("Raw one");
 	});
 
 	it("associates primitive array selects with the visible array label", () => {

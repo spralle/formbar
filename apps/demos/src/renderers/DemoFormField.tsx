@@ -1,8 +1,7 @@
 import type { FormApi } from "@formbar/core";
-import { type FormbarOption, type SchemaFieldInfo, normalizeFormbarOptions } from "@formbar/from-schema";
+import type { FormbarOption, SchemaFieldInfo } from "@formbar/from-schema";
 import type { ResolvedFieldState } from "@formbar/react-schema";
-import type { ReactNode } from "react";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
 import { Badge, Input, Label, Slider, Switch, Textarea, cn } from "../ui";
 import { toIdPart } from "./demo-control-ids";
 import { isDemoFieldDisabled } from "./demo-field-disabled";
@@ -30,9 +29,7 @@ function extractFieldMeta(
 	const meta = field.metadata;
 	return {
 		widget: meta?.widget,
-		options:
-			resolvedOptions ??
-			(Array.isArray(meta?.enum) || Array.isArray(meta?.options) ? normalizeFormbarOptions(meta).options : undefined),
+		options: resolvedOptions,
 		disabled: isDemoFieldDisabled(field, fieldState),
 		format: meta?.format,
 		min: meta?.minimum,

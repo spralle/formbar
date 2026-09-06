@@ -1,5 +1,5 @@
 import type { FormApi } from "@formbar/core";
-import type { SchemaFieldInfo } from "@formbar/from-schema";
+import type { FormbarOption, SchemaFieldInfo } from "@formbar/from-schema";
 import { useSchemaForm } from "@formbar/react-schema";
 import { useCallback, useEffect, useState } from "react";
 import { DemoFormField } from "../renderers/DemoFormField";
@@ -160,17 +160,16 @@ function ProgressField({ value, onChange }: { value: number; onChange: (v: numbe
 	);
 }
 
-function CustomField({
-	form,
-	field,
-	onChange,
-}: {
-	form: FormApi;
-	field: SchemaFieldInfo;
-	onChange: (path: string, value: unknown) => void;
-}) {
+interface CustomFieldProps {
+	readonly form: FormApi;
+	readonly field: SchemaFieldInfo;
+	readonly preparedOptions: readonly FormbarOption[] | undefined;
+	readonly onChange: (path: string, value: unknown) => void;
+}
+
+function CustomField({ form, field, preparedOptions, onChange }: CustomFieldProps) {
 	const widget = field.metadata?.widget;
-	const options = field.metadata?.options as string[] | undefined;
+	const options = preparedOptions?.flatMap((option) => (typeof option.value === "string" ? [option.value] : []));
 
 	const getData = useCallback(() => form.getState().data as Record<string, unknown>, [form]);
 	const [value, setValue] = useState<unknown>(getData()[field.path]);
@@ -193,7 +192,7 @@ function CustomField({
 	const description = field.metadata?.description;
 
 	if (!widget || widget === "textarea") {
-		return <DemoFormField form={form} field={field} onChange={onChange} />;
+		return <DemoFormField form={form} field={field} options={preparedOptions} onChange={onChange} />;
 	}
 
 	return (
@@ -212,8 +211,79 @@ function CustomField({
 	);
 }
 
+interface CustomRenderersViewProps {
+	readonly form: FormApi;
+	readonly fields: readonly SchemaFieldInfo[];
+	readonly optionsByPath: ReadonlyMap<string, readonly FormbarOption[]>;
+	readonly formData: Record<string, unknown>;
+	readonly onChange: (path: string, value: unknown) => void;
+}
+
+function CustomRenderersView({ form, fields, optionsByPath, formData, onChange }: CustomRenderersViewProps) {
+	return (
+		<DemoShell
+			title="Custom Renderers"
+			description="Demonstrates custom field renderers using x-formbar metadata extensions. Star ratings, color pickers, checkbox groups, and progress bars — all driven by schema metadata."
+			motivation="Shows the extensibility story: star ratings, color pickers, checkbox groups, and progress bars via custom renderer functions. Proves developers aren't locked into built-in widgets — they can plug in any React component."
+			features={[
+				"Custom Widgets",
+				"x-formbar Metadata",
+				"Star Rating",
+				"Color Picker",
+				"Checkbox Group",
+				"Progress Bar",
+				"Extensible Renderers",
+			]}
+			schema={schema}
+		>
+			<div className="flex flex-col gap-4">
+				<CustomFieldsCard {...{ form, fields, optionsByPath, onChange }} />
+				<FormDataCard formData={formData} />
+			</div>
+		</DemoShell>
+	);
+}
+
+function CustomFieldsCard({ form, fields, optionsByPath, onChange }: Omit<CustomRenderersViewProps, "formData">) {
+	return (
+		<Card className="border-border">
+			<CardHeader>
+				<CardTitle className="text-foreground">Custom Widget Form</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<div className="flex flex-col gap-5">
+					{fields.map((field) => (
+						<CustomField
+							key={field.path}
+							form={form}
+							field={field}
+							preparedOptions={optionsByPath.get(field.path)}
+							onChange={onChange}
+						/>
+					))}
+				</div>
+			</CardContent>
+		</Card>
+	);
+}
+
+function FormDataCard({ formData }: Pick<CustomRenderersViewProps, "formData">) {
+	return (
+		<Card className="border-border">
+			<CardHeader className="pb-2">
+				<CardTitle className="text-sm text-foreground">Form Data (JSON)</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<pre className="rounded-md bg-surface-inset p-3 text-xs text-code-foreground overflow-auto max-h-48 border border-border-muted font-mono">
+					{JSON.stringify(formData, null, 2)}
+				</pre>
+			</CardContent>
+		</Card>
+	);
+}
+
 export function CustomRenderersDemo() {
-	const { form, fields } = useSchemaForm(schema, {
+	const { form, fields, optionsByPath } = useSchemaForm(schema, {
 		initialData: {
 			qualityRating: 0,
 			userSatisfaction: 0,
@@ -237,46 +307,5 @@ export function CustomRenderersDemo() {
 		console.log("change", path, value);
 	}, []);
 
-	return (
-		<DemoShell
-			title="Custom Renderers"
-			description="Demonstrates custom field renderers using x-formbar metadata extensions. Star ratings, color pickers, checkbox groups, and progress bars — all driven by schema metadata."
-			motivation="Shows the extensibility story: star ratings, color pickers, checkbox groups, and progress bars via custom renderer functions. Proves developers aren't locked into built-in widgets — they can plug in any React component."
-			features={[
-				"Custom Widgets",
-				"x-formbar Metadata",
-				"Star Rating",
-				"Color Picker",
-				"Checkbox Group",
-				"Progress Bar",
-				"Extensible Renderers",
-			]}
-			schema={schema}
-		>
-			<div className="flex flex-col gap-4">
-				<Card className="border-border">
-					<CardHeader>
-						<CardTitle className="text-foreground">Custom Widget Form</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="flex flex-col gap-5">
-							{fields.map((field) => (
-								<CustomField key={field.path} form={form} field={field} onChange={handleChange} />
-							))}
-						</div>
-					</CardContent>
-				</Card>
-				<Card className="border-border">
-					<CardHeader className="pb-2">
-						<CardTitle className="text-sm text-foreground">Form Data (JSON)</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<pre className="rounded-md bg-surface-inset p-3 text-xs text-code-foreground overflow-auto max-h-48 border border-border-muted font-mono">
-							{JSON.stringify(formData, null, 2)}
-						</pre>
-					</CardContent>
-				</Card>
-			</div>
-		</DemoShell>
-	);
+	return <CustomRenderersView {...{ form, fields, optionsByPath, formData, onChange: handleChange }} />;
 }

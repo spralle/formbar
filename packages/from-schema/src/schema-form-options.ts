@@ -5,7 +5,7 @@ import {
 	type FormbarOptionWarning,
 	normalizeFormbarOptions,
 } from "./formbar-options.js";
-import { extractJsonSchemaArrayItemOptionFields } from "./json-schema-option-fields.js";
+import { extractJsonSchemaOptionFields } from "./json-schema-option-fields.js";
 
 export interface PreparedSchemaOptions {
 	readonly result: SchemaIngestionResult;
@@ -20,7 +20,7 @@ export function prepareSchemaOptions(
 ): PreparedSchemaOptions {
 	const warnings: FormbarOptionWarning[] = [];
 	const optionsByPath = new Map<string, readonly FormbarOption[]>();
-	const fieldsByPath = collectOptionFields(result.fields, schema);
+	const fieldsByPath = collectOptionFields(result, schema);
 	for (const field of fieldsByPath.values()) {
 		const metadata = field.metadata;
 		if (!hasOptionMetadata(field)) continue;
@@ -34,18 +34,13 @@ export function prepareSchemaOptions(
 	return { result, optionsByPath, warnings };
 }
 
-function collectOptionFields(
-	fields: readonly SchemaFieldInfo[],
-	schema: unknown,
-): ReadonlyMap<string, SchemaFieldInfo> {
+function collectOptionFields(result: SchemaIngestionResult, schema: unknown): ReadonlyMap<string, SchemaFieldInfo> {
 	const fieldsByPath = new Map<string, SchemaFieldInfo>();
-	for (const field of fields) fieldsByPath.set(field.path, field);
-	if (isJsonSchema(schema)) {
-		for (const field of extractJsonSchemaArrayItemOptionFields(schema)) {
-			const existing = fieldsByPath.get(field.path);
-			if (!existing || !hasOptionMetadata(existing)) fieldsByPath.set(field.path, field);
-		}
+	if (result.metadata.vendor === "json-schema" && isJsonSchema(schema)) {
+		for (const field of extractJsonSchemaOptionFields(schema)) fieldsByPath.set(field.path, field);
+		return fieldsByPath;
 	}
+	for (const field of result.fields) fieldsByPath.set(field.path, field);
 	return fieldsByPath;
 }
 
