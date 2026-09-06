@@ -62,3 +62,35 @@ describe("useSchemaForm initial data", () => {
 		});
 	});
 });
+
+describe("useSchemaForm option warnings", () => {
+	it("surfaces preparation warnings and resolved titles", () => {
+		vi.clearAllMocks();
+		const resolveOptionTitle = vi.fn(({ value }: { value: unknown }) =>
+			value === "active" ? "Resolved active" : undefined,
+		);
+		const result = useSchemaForm<FormData, Record<string, unknown>>(
+			{
+				type: "object",
+				properties: {
+					role: {
+						type: "string",
+						enum: ["active"],
+						"x-formbar": { options: [{ value: "missing", title: "Missing" }] },
+					},
+				},
+			},
+			{ resolveOptionTitle },
+		);
+
+		expect(result.warnings).toHaveLength(1);
+		expect(result.warnings[0]).toMatchObject({
+			code: "FORMBAR_OPTION_UNMATCHED",
+			path: "role",
+			index: 0,
+			value: "missing",
+		});
+		expect(result.optionsByPath.get("role")).toEqual([{ value: "active", title: "Resolved active" }]);
+		expect(vi.mocked(useForm).mock.calls[0]?.[0]).not.toHaveProperty("resolveOptionTitle");
+	});
+});

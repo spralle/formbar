@@ -1,5 +1,12 @@
 import type { FormApi, ValidatorFn } from "@formbar/core";
-import type { LayoutNode, SchemaFieldInfo, SchemaMetadata } from "@formbar/from-schema";
+import type {
+	FormbarOption,
+	FormbarOptionTitleResolver,
+	FormbarOptionWarning,
+	LayoutNode,
+	SchemaFieldInfo,
+	SchemaMetadata,
+} from "@formbar/from-schema";
 import { createSchemaForm } from "@formbar/from-schema";
 import { type UseFormOptions, useForm, useFormSelector } from "@formbar/react";
 import { useMemo } from "react";
@@ -9,6 +16,7 @@ import { pruneHiddenFields, resolveFieldStates } from "./resolve-field-state.js"
 export interface UseSchemaFormOptions<TData, TUi> extends Omit<UseFormOptions<TData, TUi>, "validators"> {
 	readonly validators?: readonly ValidatorFn[];
 	readonly layoutOverride?: LayoutNode;
+	readonly resolveOptionTitle?: FormbarOptionTitleResolver;
 }
 
 export interface UseSchemaFormResult<TData, TUi> {
@@ -17,6 +25,8 @@ export interface UseSchemaFormResult<TData, TUi> {
 	readonly layout: LayoutNode;
 	readonly metadata: SchemaMetadata;
 	readonly fieldStates: ReadonlyMap<string, ResolvedFieldState>;
+	readonly optionsByPath: ReadonlyMap<string, readonly FormbarOption[]>;
+	readonly warnings: readonly FormbarOptionWarning[];
 }
 
 /** Stable empty fallback — avoids creating a new object when no uiState exists */
@@ -32,6 +42,16 @@ function shallowEqualRecord(a: Readonly<Record<string, unknown>>, b: Readonly<Re
 		if (a[key] !== b[key]) return false;
 	}
 	return true;
+}
+
+function getFormOptions<TData, TUi>(options: UseSchemaFormOptions<TData, TUi> | undefined): UseFormOptions<TData, TUi> {
+	const {
+		layoutOverride: _layoutOverride,
+		resolveOptionTitle: _resolveOptionTitle,
+		validators: _validators,
+		...formOptions
+	} = options ?? {};
+	return formOptions;
 }
 
 /**
@@ -68,8 +88,9 @@ export function useSchemaForm<TData, TUi>(
 			createSchemaForm(schema, {
 				layoutOverride: options?.layoutOverride,
 				validators: options?.validators,
+				resolveOptionTitle: options?.resolveOptionTitle,
 			}),
-		[schema, options?.layoutOverride, options?.validators],
+		[schema, options?.layoutOverride, options?.validators, options?.resolveOptionTitle],
 	);
 
 	const mergedInitialData = useMemo(() => {
@@ -78,7 +99,7 @@ export function useSchemaForm<TData, TUi>(
 	}, [prepared.defaults, options?.initialData]);
 
 	const form = useForm<TData, TUi>({
-		...options,
+		...getFormOptions(options),
 		schema,
 		...(mergedInitialData === undefined ? {} : { initialData: mergedInitialData }),
 		validators: prepared.validators,
@@ -107,5 +128,7 @@ export function useSchemaForm<TData, TUi>(
 		layout,
 		metadata: prepared.metadata,
 		fieldStates,
+		optionsByPath: prepared.optionsByPath,
+		warnings: prepared.warnings,
 	};
 }
