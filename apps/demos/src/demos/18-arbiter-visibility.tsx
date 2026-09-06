@@ -19,7 +19,7 @@ interface UiState {
 	readonly showProvince: boolean;
 }
 
-const arbiterRules = [
+export const arbiterVisibilityRules = [
 	{
 		name: "showUSState",
 		when: { country: "US" },
@@ -37,7 +37,7 @@ const arbiterRules = [
 	},
 ] as const;
 
-const schema = {
+export const arbiterVisibilitySchema = {
 	type: "object",
 	properties: {
 		country: { type: "string", title: "Country", enum: ["US", "CA", "UK", "DE"] },
@@ -47,6 +47,11 @@ const schema = {
 	},
 };
 
+export const arbiterVisibilityData = { country: "", state: "", province: "", region: "" };
+export const arbiterVisibilityUiState = { showState: false, showProvince: false };
+const arbiterRules = arbiterVisibilityRules;
+const schema = arbiterVisibilitySchema;
+
 const US_STATES = ["California", "New York", "Texas", "Florida"];
 const CA_PROVINCES = ["Ontario", "Quebec", "British Columbia", "Alberta"];
 
@@ -54,8 +59,8 @@ export function ArbiterVisibilityDemo() {
 	const plugins = useMemo(() => [createArbiterPlugin({ rules: arbiterRules })], []);
 
 	const form = useForm<FormData, UiState>({
-		initialData: { country: "", state: "", province: "", region: "" },
-		initialUiState: { showState: false, showProvince: false },
+		initialData: arbiterVisibilityData,
+		initialUiState: arbiterVisibilityUiState,
 		plugins,
 	});
 

@@ -1,7 +1,7 @@
 import { DemoFormRoot } from "../renderers/DemoFormRoot";
 import { DemoShell } from "../renderers/DemoShell";
 
-const schema = {
+export const nestedAddressSchema = {
 	type: "object",
 	required: ["name", "email"],
 	properties: {
@@ -39,6 +39,8 @@ const schema = {
 		},
 	},
 };
+
+const schema = nestedAddressSchema;
 
 export function NestedAddressDemo() {
 	return (

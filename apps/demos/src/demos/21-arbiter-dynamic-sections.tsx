@@ -26,7 +26,7 @@ interface UiState {
 	readonly showLifeSection: boolean;
 }
 
-const arbiterRules = [
+export const arbiterSectionsRules = [
 	{
 		name: "autoSection",
 		when: { coverageType: "auto" },
@@ -49,12 +49,28 @@ const arbiterRules = [
 	},
 ] as const;
 
-const schema = {
+export const arbiterSectionsSchema = {
 	type: "object",
 	properties: {
 		coverageType: { type: "string", title: "Coverage Type", enum: ["auto", "home", "life"] },
 	},
 };
+
+export const arbiterSectionsData = {
+	coverageType: "",
+	make: "",
+	model: "",
+	year: 0,
+	address: "",
+	sqft: 0,
+	yearBuilt: 0,
+	age: 0,
+	smoker: false,
+	conditions: "",
+};
+export const arbiterSectionsUiState = { showAutoSection: false, showHomeSection: false, showLifeSection: false };
+const arbiterRules = arbiterSectionsRules;
+const schema = arbiterSectionsSchema;
 
 const inputClass = cn("rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground w-full");
 
@@ -71,19 +87,8 @@ export function ArbiterDynamicSectionsDemo() {
 	const plugins = useMemo(() => [createArbiterPlugin({ rules: arbiterRules })], []);
 
 	const form = useForm<FormData, UiState>({
-		initialData: {
-			coverageType: "",
-			make: "",
-			model: "",
-			year: 0,
-			address: "",
-			sqft: 0,
-			yearBuilt: 0,
-			age: 0,
-			smoker: false,
-			conditions: "",
-		},
-		initialUiState: { showAutoSection: false, showHomeSection: false, showLifeSection: false },
+		initialData: arbiterSectionsData,
+		initialUiState: arbiterSectionsUiState,
 		plugins,
 	});
 

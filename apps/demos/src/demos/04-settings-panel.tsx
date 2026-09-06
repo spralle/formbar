@@ -1,7 +1,7 @@
 import { DemoFormRoot } from "../renderers/DemoFormRoot";
 import { DemoShell } from "../renderers/DemoShell";
 
-const schema = {
+export const settingsPanelSchema = {
 	type: "object",
 	properties: {
 		notifications: { type: "boolean", title: "Enable Notifications", description: "Receive in-app notifications" },
@@ -31,7 +31,7 @@ const schema = {
 	},
 };
 
-const layout = {
+export const settingsPanelLayout = {
 	type: "group",
 	id: "root",
 	children: [
@@ -75,6 +75,9 @@ const layout = {
 		},
 	],
 };
+
+const schema = settingsPanelSchema;
+const layout = settingsPanelLayout;
 
 export function SettingsPanelDemo() {
 	return (

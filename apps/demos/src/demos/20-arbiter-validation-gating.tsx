@@ -18,7 +18,7 @@ interface UiState {
 	readonly canSubmit: boolean;
 }
 
-const arbiterRules = [
+export const arbiterValidationRules = [
 	{
 		name: "canSubmit",
 		when: { agreeToTerms: true },
@@ -31,7 +31,7 @@ const arbiterRules = [
 	},
 ] as const;
 
-const schema = {
+export const arbiterValidationSchema = {
 	type: "object",
 	properties: {
 		name: { type: "string", title: "Full Name" },
@@ -41,12 +41,17 @@ const schema = {
 	},
 };
 
+export const arbiterValidationData = { name: "", email: "", age: 0, agreeToTerms: false };
+export const arbiterValidationUiState = { canSubmit: false };
+const arbiterRules = arbiterValidationRules;
+const schema = arbiterValidationSchema;
+
 export function ArbiterValidationGatingDemo() {
 	const plugins = useMemo(() => [createArbiterPlugin({ rules: arbiterRules })], []);
 
 	const form = useForm<FormData, UiState>({
-		initialData: { name: "", email: "", age: 0, agreeToTerms: false },
-		initialUiState: { canSubmit: false },
+		initialData: arbiterValidationData,
+		initialUiState: arbiterValidationUiState,
 		plugins,
 	});
 

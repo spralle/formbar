@@ -3,7 +3,7 @@ import { DemoFormRoot } from "../renderers/DemoFormRoot";
 import { DemoShell } from "../renderers/DemoShell";
 import { cn } from "../ui";
 
-const minimalSchema = {
+export const minimalSchema = {
 	type: "object",
 	properties: {
 		name: { type: "string" },
@@ -14,7 +14,7 @@ const minimalSchema = {
 	},
 } as const;
 
-const explicitSchema = {
+export const explicitSchema = {
 	type: "object",
 	required: ["name", "email", "role"],
 	properties: {

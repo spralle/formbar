@@ -1,7 +1,7 @@
 import { DemoFormRoot } from "../renderers/DemoFormRoot";
 import { DemoShell } from "../renderers/DemoShell";
 
-const schema = {
+export const userProfileSchema = {
 	type: "object",
 	required: ["firstName", "lastName", "email", "role"],
 	properties: {
@@ -20,7 +20,7 @@ const schema = {
 	},
 };
 
-const layout = {
+export const userProfileLayout = {
 	type: "group",
 	id: "root",
 	children: [
@@ -55,6 +55,9 @@ const layout = {
 		},
 	],
 };
+
+const schema = userProfileSchema;
+const layout = userProfileLayout;
 
 export function UserProfileDemo() {
 	return (

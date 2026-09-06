@@ -1,7 +1,7 @@
 import { DemoFormRoot } from "../renderers/DemoFormRoot";
 import { DemoShell } from "../renderers/DemoShell";
 
-const schema = {
+export const surveySchema = {
 	type: "object",
 	required: ["satisfaction", "recommend"],
 	properties: {
@@ -55,7 +55,7 @@ const schema = {
 	},
 } as const;
 
-const layout = {
+export const surveyLayout = {
 	type: "group",
 	id: "root",
 	children: [
@@ -96,6 +96,9 @@ const layout = {
 		},
 	],
 } as const;
+
+const schema = surveySchema;
+const layout = surveyLayout;
 
 export function SurveyQuestionnaireDemo() {
 	return (

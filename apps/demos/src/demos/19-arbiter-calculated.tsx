@@ -17,7 +17,7 @@ interface UiState {
 	readonly showBulkDiscount: boolean;
 }
 
-const arbiterRules = [
+export const arbiterCalculatedRules = [
 	{
 		name: "smallOrder",
 		when: { quantity: { $lt: 10 } },
@@ -30,7 +30,7 @@ const arbiterRules = [
 	},
 ] as const;
 
-const schema = {
+export const arbiterCalculatedSchema = {
 	type: "object",
 	properties: {
 		quantity: { type: "number", title: "Quantity", minimum: 1 },
@@ -38,12 +38,17 @@ const schema = {
 	},
 };
 
+export const arbiterCalculatedData = { quantity: 1, unitPrice: 25 };
+export const arbiterCalculatedUiState = { tier: "small", showBulkDiscount: false };
+const arbiterRules = arbiterCalculatedRules;
+const schema = arbiterCalculatedSchema;
+
 export function ArbiterCalculatedDemo() {
 	const plugins = useMemo(() => [createArbiterPlugin({ rules: arbiterRules })], []);
 
 	const form = useForm<FormData, UiState>({
-		initialData: { quantity: 1, unitPrice: 25 },
-		initialUiState: { tier: "small", showBulkDiscount: false },
+		initialData: arbiterCalculatedData,
+		initialUiState: arbiterCalculatedUiState,
 		plugins,
 	});
 
