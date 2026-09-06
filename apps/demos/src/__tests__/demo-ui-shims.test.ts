@@ -15,7 +15,7 @@ import {
 	getSelectedFormbarOptionKey,
 } from "../renderers/formbar-option-keys";
 import { FormbarOptionsSelect, renderFormbarOptionsControl } from "../renderers/formbar-options-control";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Slider } from "../ui";
+import { Checkbox, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Slider } from "../ui";
 
 type NativeControlProps = {
 	readonly children?: ReactNode;
@@ -329,5 +329,26 @@ describe("demo control shims", () => {
 		props.onChange(event);
 		expect(onChange).toHaveBeenCalledWith(event);
 		expect(onValueChange).toHaveBeenCalledWith([27]);
+	});
+
+	it("bridges native checkbox changes without forwarding the Formbar callback", () => {
+		const onChange = vi.fn();
+		const onCheckedChange = vi.fn();
+		const checkbox = Checkbox({ checked: false, disabled: true, onChange, onCheckedChange, "aria-label": "Security" });
+		const props = getNativeProps(checkbox);
+
+		expect(checkbox.type).toBe("input");
+		expect(props).not.toHaveProperty("onCheckedChange");
+		expect(props).toMatchObject({ type: "checkbox", checked: false, disabled: true, "aria-label": "Security" });
+
+		const checkedEvent = { currentTarget: { checked: true } } as ChangeEvent<HTMLInputElement & HTMLSelectElement>;
+		props.onChange(checkedEvent);
+		expect(onChange).toHaveBeenCalledWith(checkedEvent);
+		expect(onCheckedChange).toHaveBeenCalledWith(true);
+
+		const uncheckedEvent = { currentTarget: { checked: false } } as ChangeEvent<HTMLInputElement & HTMLSelectElement>;
+		props.onChange(uncheckedEvent);
+		expect(onChange).toHaveBeenCalledWith(uncheckedEvent);
+		expect(onCheckedChange).toHaveBeenLastCalledWith(false);
 	});
 });

@@ -135,8 +135,21 @@ export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTex
 	return createElement("textarea", { className: cn("border rounded px-3 py-2 text-sm w-full", className), ...props });
 }
 
-export function Checkbox({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-	return createElement("input", { type: "checkbox", className, ...props });
+type CheckboxProps = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> & {
+	onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
+	onCheckedChange?: (checked: boolean) => void;
+};
+
+export function Checkbox({ className, onChange, onCheckedChange, ...props }: CheckboxProps) {
+	return createElement("input", {
+		type: "checkbox",
+		className,
+		onChange: (event: ChangeEvent<HTMLInputElement>) => {
+			onChange?.(event);
+			onCheckedChange?.(event.currentTarget.checked);
+		},
+		...props,
+	});
 }
 
 type SwitchProps = Omit<InputHTMLAttributes<HTMLInputElement>, "checked" | "onChange" | "type"> & {

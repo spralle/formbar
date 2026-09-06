@@ -130,15 +130,20 @@ function CheckboxGroup({
 	onChange: (v: string) => void;
 }) {
 	const selected = value ? value.split(",").filter(Boolean) : [];
-	const toggle = (opt: string) => {
-		const next = selected.includes(opt) ? selected.filter((s) => s !== opt) : [...selected, opt];
+	const setOptionChecked = (opt: string, checked: boolean) => {
+		const withoutOption = selected.filter((item) => item !== opt);
+		const next = checked ? [...withoutOption, opt] : withoutOption;
 		onChange(next.join(","));
 	};
 	return (
 		<div className="flex flex-col gap-2">
 			{options.map((opt) => (
 				<div key={opt} className="flex items-center gap-2">
-					<Checkbox checked={selected.includes(opt)} onCheckedChange={() => toggle(opt)} id={`cb-${opt}`} />
+					<Checkbox
+						checked={selected.includes(opt)}
+						onCheckedChange={(checked) => setOptionChecked(opt, checked)}
+						id={`cb-${opt}`}
+					/>
 					<Label htmlFor={`cb-${opt}`} className="text-sm text-foreground">
 						{opt}
 					</Label>
