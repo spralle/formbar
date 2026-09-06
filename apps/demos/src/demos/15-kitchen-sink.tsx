@@ -33,8 +33,15 @@ const schema = {
 		selectSmall: {
 			type: "string",
 			title: "RadioGroup (≤5 options)",
-			enum: ["Option A", "Option B", "Option C"],
-			description: "Small enums render as radio group",
+			enum: ["standard", "legacy", "custom"],
+			"x-formbar": {
+				options: [
+					{ value: "custom", title: "Custom configuration" },
+					{ value: "legacy", title: "Legacy (retained)", disabled: true },
+					{ value: "standard", title: "Standard configuration" },
+				],
+			},
+			description: "Titles differ from stored values; the selected legacy value stays visible while disabled",
 		},
 		selectLarge: {
 			type: "string",
@@ -100,7 +107,7 @@ const layout = {
 	],
 } as const;
 
-const data = { withDefault: "Hello, ARB!" };
+const data = { selectSmall: "legacy", withDefault: "Hello, ARB!" };
 
 export function KitchenSinkDemo() {
 	return (

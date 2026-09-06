@@ -2,7 +2,16 @@ import type { ChangeEvent, ReactElement, ReactNode } from "react";
 import { Children, createElement, isValidElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { createRadioOptionId } from "../renderers/DemoFormField";
+import { getSchemaFormbarOptions } from "../renderers/ArrayRenderer";
+import { createRadioOptionId } from "../renderers/demo-control-ids";
+import { isDemoFieldDisabled, isDemoSchemaDisabled } from "../renderers/demo-field-disabled";
+import {
+	getFormbarOptionByKey,
+	getFormbarOptionKey,
+	getSelectableFormbarOption,
+	getSelectedFormbarOptionKey,
+} from "../renderers/formbar-option-keys";
+import { FormbarOptionsSelect, renderFormbarOptionsControl } from "../renderers/formbar-options-control";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Slider } from "../ui";
 
 type NativeControlProps = {
@@ -17,6 +26,95 @@ function getNativeProps(element: ReactElement): NativeControlProps {
 }
 
 describe("demo control shims", () => {
+	it("round-trips exact typed option values through opaque keys", () => {
+		const options = [1, "1", true, null].map((value) => ({ value, title: String(value) }));
+
+		for (const [index, option] of options.entries()) {
+			const key = getFormbarOptionKey(index);
+			expect(getSelectedFormbarOptionKey(options, option.value)).toBe(key);
+			expect(getFormbarOptionByKey(options, key)?.value).toBe(option.value);
+		}
+	});
+
+	it("normalizes enum-backed and choice-only primitive array item options", () => {
+		expect(
+			getSchemaFormbarOptions({
+				enum: [1, "1"],
+				"x-formbar": { options: [{ value: "1", title: "String one" }, 1] },
+			}),
+		).toEqual([
+			{ value: 1, title: "1" },
+			{ value: "1", title: "String one" },
+		]);
+		expect(getSchemaFormbarOptions({ "x-formbar": { options: [true, null] } })).toEqual([
+			{ value: true, title: "true" },
+			{ value: null, title: "null" },
+		]);
+	});
+
+	it("retains a selected disabled value while guarding new UI selection", () => {
+		const options = [
+			{ value: "active", title: "Active" },
+			{ value: "legacy", title: "Legacy", disabled: true },
+		];
+
+		expect(getSelectedFormbarOptionKey(options, "legacy")).toBe(getFormbarOptionKey(1));
+		expect(getSelectableFormbarOption(options, getFormbarOptionKey(1), false)).toBeUndefined();
+		expect(getSelectableFormbarOption(options, getFormbarOptionKey(0), true)).toBeUndefined();
+		expect(getSelectableFormbarOption(options, getFormbarOptionKey(0), false)?.value).toBe("active");
+
+		const markup = renderToStaticMarkup(
+			renderFormbarOptionsControl("legacy", vi.fn(), options, false, false, {
+				controlId: "state",
+				labelId: "state-label",
+				describedBy: undefined,
+				invalid: false,
+			}),
+		);
+		expect(markup).toMatch(/<input[^>]*disabled=""[^>]*checked=""[^>]*value="formbar-option-1"/);
+		expect(markup).toContain("Legacy");
+	});
+
+	it("round-trips typed values through both radio and select controls", () => {
+		const onRadioChange = vi.fn();
+		const radioOptions = [1, "1"].map((value) => ({ value, title: String(value) }));
+		const radio = renderFormbarOptionsControl("1", onRadioChange, radioOptions, false, false, {
+			controlId: "typed-radio",
+			labelId: "typed-radio-label",
+			describedBy: undefined,
+			invalid: false,
+		}) as ReactElement<{ onValueChange: (value: string) => void; value: string }>;
+
+		expect(radio.props.value).toBe(getFormbarOptionKey(1));
+		radio.props.onValueChange(getFormbarOptionKey(0));
+		expect(onRadioChange).toHaveBeenCalledWith(1);
+
+		const onSelectChange = vi.fn();
+		const selectOptions = [1, "1", true, false, null, "last"].map((value) => ({ value, title: String(value) }));
+		const select = FormbarOptionsSelect({
+			value: true,
+			onChange: onSelectChange,
+			options: selectOptions,
+			fieldDisabled: false,
+		}) as ReactElement<{ onValueChange: (value: string) => void; value: string }>;
+
+		expect(select.props.value).toBe(getFormbarOptionKey(2));
+		select.props.onValueChange(getFormbarOptionKey(0));
+		expect(onSelectChange).toHaveBeenCalledWith(1);
+	});
+
+	it("combines schema, metadata, and resolved field disabled state", () => {
+		const field = { path: "choice", type: "enum", required: false, metadata: {} } as const;
+		const enabledState = { visible: true, readOnly: false, disabled: false };
+
+		expect(isDemoFieldDisabled(field, enabledState)).toBe(false);
+		expect(isDemoFieldDisabled(field, { ...enabledState, readOnly: true })).toBe(true);
+		expect(isDemoFieldDisabled(field, { ...enabledState, disabled: true })).toBe(true);
+		expect(isDemoFieldDisabled({ ...field, metadata: { disabled: true } }, enabledState)).toBe(true);
+		expect(isDemoSchemaDisabled({ readOnly: true })).toBe(true);
+		expect(isDemoSchemaDisabled({ "x-formbar": { disabled: true } })).toBe(true);
+	});
+
 	it("creates distinct radio ids when normalized values collide", () => {
 		const firstId = createRadioOptionId("field", "a b", 0);
 		const secondId = createRadioOptionId("field", "a-b", 1);

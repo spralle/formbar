@@ -1,7 +1,7 @@
 import type { FormApi } from "@formbar/core";
-import type { LayoutNode, SchemaFieldInfo } from "@formbar/from-schema";
+import type { FormbarOption, LayoutNode, SchemaFieldInfo } from "@formbar/from-schema";
 import { isSectionNode } from "@formbar/from-schema";
-import { useSchemaForm } from "@formbar/react-schema";
+import { type ResolvedFieldState, useSchemaForm } from "@formbar/react-schema";
 import { useCallback, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui";
 import { ArrayRenderer } from "./ArrayRenderer";
@@ -43,7 +43,7 @@ export function DemoFormRoot({
 	onChange,
 	responsive: _responsive,
 }: DemoFormRootProps) {
-	const { form, fields, layout } = useSchemaForm(schema, {
+	const { form, fields, layout, optionsByPath, fieldStates } = useSchemaForm(schema, {
 		initialData: data,
 		layoutOverride: layoutOverride as LayoutNode | undefined,
 	});
@@ -64,6 +64,7 @@ export function DemoFormRoot({
 		},
 		[onChange],
 	);
+	const renderContext = { form, fieldMap, optionsByPath, fieldStates, onChange: handleChange, arrayItemsMap };
 
 	return (
 		<>
@@ -72,7 +73,7 @@ export function DemoFormRoot({
 					<CardTitle className="text-foreground">Live Form</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<div className="flex flex-col gap-4">{renderNode(layout, form, fieldMap, handleChange, arrayItemsMap)}</div>
+					<div className="flex flex-col gap-4">{renderNode(layout, renderContext)}</div>
 				</CardContent>
 			</Card>
 			<Card className="border-border mt-4">
@@ -89,17 +90,18 @@ export function DemoFormRoot({
 	);
 }
 
-function renderNode(
-	node: LayoutNode,
-	form: FormApi,
-	fieldMap: Map<string, SchemaFieldInfo>,
-	onChange: (path: string, value: unknown) => void,
-	arrayItemsMap: ReadonlyMap<string, Record<string, unknown>>,
-): React.ReactNode {
+interface DemoRenderContext {
+	readonly form: FormApi;
+	readonly fieldMap: Map<string, SchemaFieldInfo>;
+	readonly optionsByPath: ReadonlyMap<string, readonly FormbarOption[]>;
+	readonly fieldStates: ReadonlyMap<string, ResolvedFieldState>;
+	readonly onChange: (path: string, value: unknown) => void;
+	readonly arrayItemsMap: ReadonlyMap<string, Record<string, unknown>>;
+}
+
+function renderNode(node: LayoutNode, context: DemoRenderContext): React.ReactNode {
 	if (node.type === "field" && node.path) {
-		const field = fieldMap.get(node.path);
-		if (!field) return null;
-		return <DemoFormField key={node.id} form={form} field={field} onChange={onChange} />;
+		return renderFieldNode(node, context);
 	}
 
 	if (isSectionNode(node)) {
@@ -109,9 +111,7 @@ function renderNode(
 		return (
 			<div key={node.id} className="flex flex-col gap-3">
 				{title && <h3 className="text-sm font-semibold text-foreground">{title}</h3>}
-				<div className={gridClass}>
-					{node.children?.map((child) => renderNode(child, form, fieldMap, onChange, arrayItemsMap))}
-				</div>
+				<div className={gridClass}>{node.children?.map((child) => renderNode(child, context))}</div>
 			</div>
 		);
 	}
@@ -121,17 +121,33 @@ function renderNode(
 			<ArrayRenderer
 				key={node.id}
 				node={node}
-				form={form}
-				fieldMap={fieldMap}
-				onChange={onChange}
-				itemSchema={arrayItemsMap.get(node.path)}
+				form={context.form}
+				fieldMap={context.fieldMap}
+				fieldStates={context.fieldStates}
+				onChange={context.onChange}
+				itemSchema={context.arrayItemsMap.get(node.path)}
 			/>
 		);
 	}
 
 	return (
 		<div key={node.id} className="flex flex-col gap-4">
-			{node.children?.map((child) => renderNode(child, form, fieldMap, onChange, arrayItemsMap))}
+			{node.children?.map((child) => renderNode(child, context))}
 		</div>
+	);
+}
+
+function renderFieldNode(node: LayoutNode, context: DemoRenderContext): React.ReactNode {
+	const field = node.path ? context.fieldMap.get(node.path) : undefined;
+	if (!field) return null;
+	return (
+		<DemoFormField
+			key={node.id}
+			form={context.form}
+			field={field}
+			options={context.optionsByPath.get(field.path)}
+			fieldState={context.fieldStates.get(field.path)}
+			onChange={context.onChange}
+		/>
 	);
 }

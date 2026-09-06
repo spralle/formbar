@@ -8,6 +8,7 @@ import type {
 	OptionHTMLAttributes,
 	ReactNode,
 	SelectHTMLAttributes,
+	TextareaHTMLAttributes,
 } from "react";
 import { Children, Fragment, createContext, createElement, forwardRef, isValidElement, useContext, useId } from "react";
 
@@ -130,7 +131,7 @@ export function SelectValue(_props: { placeholder?: string }) {
 	return null;
 }
 
-export function Textarea({ className, ...props }: HTMLAttributes<HTMLTextAreaElement>) {
+export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
 	return createElement("textarea", { className: cn("border rounded px-3 py-2 text-sm w-full", className), ...props });
 }
 
