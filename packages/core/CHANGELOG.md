@@ -1,5 +1,11 @@
 # @formbar/core
 
+## 0.3.0
+
+### Patch Changes
+
+- e0d7171: Preserve form data and UI state generic types when invoking submit plugin hooks.
+
 ## 0.2.1
 
 ### Patch Changes
