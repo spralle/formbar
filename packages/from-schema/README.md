@@ -50,23 +50,24 @@ form.dispose();
 - Use `@formbar/core` alone when fields and validation are defined directly in application code.
 - Use `@formbar/react-schema` when you want this schema preparation combined with React hooks and renderers.
 
-## Enum option labels
+## Formbar options and JSON Schema `enum`
 
-Keep JSON Schema `enum` values as the canonical values you want to store and validate. Put display labels in Formbar metadata via `enumOptions`; do not put label/value objects directly inside JSON Schema `enum` for presentation.
+Standard JSON Schema `enum` is a validation assertion. It remains authoritative for stored values and rendered order. `x-formbar.options` is a Formbar presentation annotation and cannot add, remove, coerce, or reorder enum values.
 
 ```ts
-import { createSchemaForm, normalizeEnumOptions } from "@formbar/from-schema";
+import { createSchemaForm, normalizeFormbarOptions } from "@formbar/from-schema";
 
 const schema = {
 	type: "object",
 	properties: {
 		scope: {
 			type: "string",
-			enum: ["any", "documents"],
+			enum: ["any", "documents", "legacy"],
 			"x-formbar": {
-				enumOptions: [
-					{ value: "any", label: "Any" },
-					{ value: "documents", label: "Documents", description: "Document fields only" },
+				options: [
+					{ value: "documents", title: "Documents" },
+					{ value: "any", title: "Any field" },
+					{ value: "legacy", title: "Legacy scope", disabled: true },
 				],
 			},
 		},
@@ -75,28 +76,49 @@ const schema = {
 
 const prepared = createSchemaForm(schema);
 const scopeField = prepared.fields.find((field) => field.path === "scope");
-const options = normalizeEnumOptions(scopeField?.metadata);
-// options display labels, but selected values remain "any" or "documents".
+const normalized = normalizeFormbarOptions(scopeField?.metadata, { path: "scope" });
+const preparedOptions = prepared.optionsByPath.get("scope");
+// normalized.options stays ordered as: any, documents, legacy.
+// The UI title never replaces the stored string value.
 ```
 
-With Zod, use `.meta({ formbar: { enumOptions: [...] } })`:
+A structured option record has this exact public shape:
 
 ```ts
-import { z } from "zod";
+type FormbarOptionRecord = {
+	value: string | number | boolean | null;
+	title?: string;
+	disabled?: boolean;
+};
+```
 
+Primitive entries such as `options: ["small", "large"]` remain supported. Matching against `enum` uses exact primitive value and type, so `1` and `"1"` are different. Partial metadata is allowed; unmatched enum values remain available with fallback titles. Duplicate records use deterministic first-wins behavior.
+
+Malformed, duplicate, and unmatched records are ignored and returned as structured warnings. `normalizeFormbarOptions` returns `{ options, warnings }`. `createSchemaForm` exposes normalized choices through `SchemaFormResult.optionsByPath` and aggregated warnings through `SchemaFormResult.warnings`. Every warning has a stable `code`, `path`, `index`, `value`, and `message`; it is not logged and is not a validation issue.
+
+An optional synchronous resolver can supply a title for a call. Title resolution order is resolver result, literal `title`, then `String(value)`:
+
+```ts
+const prepared = createSchemaForm(schema, {
+	resolveOptionTitle: ({ value, literalTitle }) => (value === "any" ? "All fields" : literalTitle),
+});
+```
+
+`disabled` is presentation-only, not authorization or schema validation. A UI must prevent newly selecting a disabled option and combine it with whole-field disabled/read-only state. An already selected disabled value remains visible, stored, and schema-valid; it is never automatically cleared. Programmatic form updates and schema validation remain authoritative.
+
+Without `enum`, `x-formbar.options` defines renderer choices and their order only. It does not constrain validation; use a standard schema keyword when values must be restricted.
+
+With Zod, the same annotation flows through Scheman's generic metadata extraction:
+
+```ts
 const zodSchema = z.object({
 	scope: z.enum(["any", "documents"]).meta({
-		formbar: {
-			enumOptions: [
-				{ value: "any", label: "Any" },
-				{ value: "documents", label: "Documents", disabled: false },
-			],
-		},
+		formbar: { options: [{ value: "documents", title: "Documents" }] },
 	}),
 });
 ```
 
-If `enumOptions` is absent or only covers some values, `normalizeEnumOptions(metadata)` returns one option for each primitive `metadata.enum` value and falls back to `String(value)` labels.
+Objects placed directly in standard `enum` are enum values and are stored as objects. They are not interpreted as Formbar option records; put presentation records in `x-formbar.options`.
 
 ## Dependencies
 

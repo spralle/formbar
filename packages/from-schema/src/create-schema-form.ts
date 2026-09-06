@@ -3,10 +3,11 @@ import { createStandardSchemaValidator, isStandardSchemaLike } from "@formbar/co
 import { type JsonSchema, type SchemaFieldInfo, type SchemaMetadata, ingestSchema } from "@scheman/core";
 import { createJsonSchemaValidator, isJsonSchema } from "./adapters/json-schema-validator.js";
 import { applyFormbarMetadata } from "./formbar-metadata.js";
+import type { FormbarOption, FormbarOptionTitleResolver, FormbarOptionWarning } from "./formbar-options.js";
 import { type LayoutMiddleware, applyLayoutMiddleware } from "./layout-middleware.js";
 import { compileLayout } from "./layout/layout-compiler.js";
 import type { LayoutNode } from "./layout/layout-types.js";
-import { applyZodFormbarEnumOptions } from "./zod-formbar-metadata.js";
+import { prepareSchemaOptions } from "./schema-form-options.js";
 
 export interface CreateSchemaFormOptions {
 	/** Additional validators to include beyond the auto-detected schema validator */
@@ -15,6 +16,8 @@ export interface CreateSchemaFormOptions {
 	readonly layoutOverride?: LayoutNode | undefined;
 	/** Middleware pipeline applied to the compiled layout tree */
 	readonly layoutMiddleware?: readonly LayoutMiddleware[] | undefined;
+	/** Synchronously resolves option titles without coupling schema ingestion to a UI framework */
+	readonly resolveOptionTitle?: FormbarOptionTitleResolver | undefined;
 }
 
 export interface SchemaFormResult {
@@ -23,6 +26,8 @@ export interface SchemaFormResult {
 	readonly metadata: SchemaMetadata;
 	readonly validators: readonly ValidatorFn[];
 	readonly defaults: Readonly<Record<string, unknown>>;
+	readonly optionsByPath: ReadonlyMap<string, readonly FormbarOption[]>;
+	readonly warnings: readonly FormbarOptionWarning[];
 }
 
 /**
@@ -49,7 +54,8 @@ export interface SchemaFormResult {
  */
 export function createSchemaForm(schema: unknown, options?: CreateSchemaFormOptions): SchemaFormResult {
 	const rawResult = ingestSchema(schema);
-	const result = applyZodFormbarEnumOptions(applyFormbarMetadata(rawResult), schema);
+	const prepared = prepareSchemaOptions(applyFormbarMetadata(rawResult), options?.resolveOptionTitle);
+	const result = prepared.result;
 	let layout = options?.layoutOverride ?? compileLayout(result);
 
 	if (options?.layoutMiddleware?.length) {
@@ -72,5 +78,13 @@ export function createSchemaForm(schema: unknown, options?: CreateSchemaFormOpti
 			defaults[f.path] = f.defaultValue;
 		}
 	}
-	return { fields: result.fields, metadata: result.metadata, layout, validators, defaults };
+	return {
+		fields: result.fields,
+		metadata: result.metadata,
+		layout,
+		validators,
+		defaults,
+		optionsByPath: prepared.optionsByPath,
+		warnings: prepared.warnings,
+	};
 }

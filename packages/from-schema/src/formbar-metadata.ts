@@ -20,7 +20,7 @@ const KNOWN_FORMBAR_KEYS = new Set([
 	"pattern",
 	"widget",
 	"options",
-	"enumOptions",
+	"disabled",
 	"label",
 	"placeholder",
 ]);

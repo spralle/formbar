@@ -6,7 +6,12 @@ describe("@formbar/from-schema public API surface", () => {
 		const exports = Object.keys(mod).sort();
 
 		expect(exports).toEqual(
-			expect.arrayContaining(["createSchemaForm", "applyLayoutMiddleware", "FromSchemaError", "normalizeEnumOptions"]),
+			expect.arrayContaining([
+				"createSchemaForm",
+				"applyLayoutMiddleware",
+				"FromSchemaError",
+				"normalizeFormbarOptions",
+			]),
 		);
 	});
 });
