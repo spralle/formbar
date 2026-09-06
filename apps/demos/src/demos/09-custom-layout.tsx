@@ -1,7 +1,7 @@
 import { DemoFormRoot } from "../renderers/DemoFormRoot";
 import { DemoShell } from "../renderers/DemoShell";
 
-const schema = {
+export const customLayoutSchema = {
 	type: "object",
 	required: ["vesselName", "imoNumber"],
 	properties: {
@@ -39,7 +39,7 @@ const schema = {
 	},
 };
 
-const layout = {
+export const customLayoutLayout = {
 	type: "group",
 	id: "root",
 	children: [
@@ -78,6 +78,9 @@ const layout = {
 		},
 	],
 } as const;
+
+const schema = customLayoutSchema;
+const layout = customLayoutLayout;
 
 export function CustomLayoutDemo() {
 	return (

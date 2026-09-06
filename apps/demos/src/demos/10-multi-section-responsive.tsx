@@ -1,7 +1,7 @@
 import { DemoFormRoot } from "../renderers/DemoFormRoot";
 import { DemoShell } from "../renderers/DemoShell";
 
-const schema = {
+export const multiSectionSchema = {
 	type: "object",
 	required: ["firstName", "lastName"],
 	properties: {
@@ -33,7 +33,7 @@ const schema = {
 	},
 };
 
-const layout = {
+export const multiSectionLayout = {
 	type: "group",
 	id: "root",
 	children: [
@@ -77,6 +77,9 @@ const layout = {
 		},
 	],
 } as const;
+
+const schema = multiSectionSchema;
+const layout = multiSectionLayout;
 
 export function MultiSectionResponsiveDemo() {
 	return (

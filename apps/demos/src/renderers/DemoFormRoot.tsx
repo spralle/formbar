@@ -1,8 +1,9 @@
-import type { FormApi } from "@formbar/core";
+import { createArbiterPlugin } from "@formbar/arbiter";
+import type { FormApi, FormState } from "@formbar/core";
 import type { FormbarOption, LayoutNode, SchemaFieldInfo } from "@formbar/from-schema";
 import { isSectionNode } from "@formbar/from-schema";
 import { type ResolvedFieldState, useSchemaForm } from "@formbar/react-schema";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui";
 import { ArrayRenderer } from "./ArrayRenderer";
 import { DemoFormField } from "./DemoFormField";
@@ -28,12 +29,24 @@ function buildArrayItemsMap(rawSchema: object): ReadonlyMap<string, Record<strin
 	return map;
 }
 
+const EMPTY_RULES: readonly unknown[] = [];
+const EMPTY_UI_STATE: Readonly<Record<string, unknown>> = {};
+
+export interface DemoFormSnapshot {
+	readonly state: FormState<Record<string, unknown>, Record<string, unknown>>;
+	readonly metadata: unknown;
+	readonly warnings: readonly unknown[];
+}
+
 interface DemoFormRootProps {
 	readonly schema: object;
 	readonly data: Record<string, unknown>;
 	readonly layout?: object;
 	readonly onChange: (path: string, value: unknown) => void;
 	readonly responsive?: boolean;
+	readonly rules?: readonly unknown[];
+	readonly initialUiState?: Record<string, unknown>;
+	readonly onSnapshot?: (snapshot: DemoFormSnapshot) => void;
 }
 
 export function DemoFormRoot(props: DemoFormRootProps) {
@@ -41,21 +54,49 @@ export function DemoFormRoot(props: DemoFormRootProps) {
 	return <DemoFormCards formData={formData} renderContext={renderContext} layout={layout} />;
 }
 
-function useDemoFormRootState({ schema, data, layout: layoutOverride, onChange }: DemoFormRootProps) {
-	const { form, fields, layout, optionsByPath, fieldStates } = useSchemaForm(schema, {
+function useDemoFormRootState({
+	schema,
+	data,
+	layout: layoutOverride,
+	onChange,
+	rules = EMPTY_RULES,
+	initialUiState = EMPTY_UI_STATE,
+	onSnapshot,
+}: DemoFormRootProps) {
+	const plugins = useMemo(
+		() =>
+			rules.length
+				? [createArbiterPlugin({ rules: rules as NonNullable<Parameters<typeof createArbiterPlugin>[0]["rules"]> })]
+				: [],
+		[rules],
+	);
+	const { form, fields, layout, optionsByPath, fieldStates, metadata, warnings } = useSchemaForm<
+		Record<string, unknown>,
+		Record<string, unknown>
+	>(schema, {
 		initialData: data,
-		layoutOverride: layoutOverride as LayoutNode | undefined,
+		initialUiState,
+		...(layoutOverride ? { layoutOverride: layoutOverride as LayoutNode } : {}),
+		plugins,
 	});
-	const [formData, setFormData] = useState<Record<string, unknown>>(data);
+	const [formData, setFormData] = useState<Record<string, unknown>>(() => form.getState().data);
 	const fieldMap = useMemo(() => indexFields(fields), [fields]);
 	const arrayItemsMap = useMemo(() => buildArrayItemsMap(schema), [schema]);
 	const handleChange = useCallback(
 		(path: string, value: unknown) => {
-			setFormData((prev) => ({ ...prev, [path]: value }));
 			onChange(path, value);
 		},
 		[onChange],
 	);
+	useEffect(() => {
+		const publish = () => {
+			const state = form.getState();
+			setFormData(state.data);
+			onSnapshot?.({ state, metadata, warnings });
+		};
+		publish();
+		return form.subscribe(publish);
+	}, [form, metadata, onSnapshot, warnings]);
 	const renderContext = { form, fieldMap, optionsByPath, fieldStates, onChange: handleChange, arrayItemsMap };
 	return { formData, renderContext, layout };
 }

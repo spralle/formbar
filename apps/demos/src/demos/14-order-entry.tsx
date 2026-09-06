@@ -1,7 +1,7 @@
 import { DemoFormRoot } from "../renderers/DemoFormRoot";
 import { DemoShell } from "../renderers/DemoShell";
 
-const schema = {
+export const orderEntrySchema = {
 	type: "object",
 	required: ["customerName", "orderDate", "paymentMethod"],
 	properties: {
@@ -31,7 +31,7 @@ const schema = {
 	},
 } as const;
 
-const layout = {
+export const orderEntryLayout = {
 	type: "group",
 	id: "root",
 	children: [
@@ -82,6 +82,9 @@ const layout = {
 		},
 	],
 } as const;
+
+const schema = orderEntrySchema;
+const layout = orderEntryLayout;
 
 export function OrderEntryDemo() {
 	return (

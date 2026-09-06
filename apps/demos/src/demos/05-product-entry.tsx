@@ -1,7 +1,7 @@
 import { DemoFormRoot } from "../renderers/DemoFormRoot";
 import { DemoShell } from "../renderers/DemoShell";
 
-const schema = {
+export const productEntrySchema = {
 	type: "object",
 	required: ["name", "sku", "price", "category"],
 	properties: {
@@ -33,7 +33,7 @@ const schema = {
 	},
 };
 
-const layout = {
+export const productEntryLayout = {
 	type: "group",
 	id: "root",
 	children: [
@@ -75,6 +75,9 @@ const layout = {
 		},
 	],
 };
+
+const schema = productEntrySchema;
+const layout = productEntryLayout;
 
 export function ProductEntryDemo() {
 	return (

@@ -1,7 +1,7 @@
 import { DemoFormRoot } from "../renderers/DemoFormRoot";
 import { DemoShell } from "../renderers/DemoShell";
 
-const schema = {
+export const richValidationSchema = {
 	type: "object",
 	required: ["username", "email", "password", "age", "website"],
 	properties: {
@@ -47,6 +47,8 @@ const schema = {
 		},
 	},
 };
+
+const schema = richValidationSchema;
 
 export function RichValidationDemo() {
 	return (

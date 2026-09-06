@@ -1,7 +1,7 @@
 import { DemoFormRoot } from "../renderers/DemoFormRoot";
 import { DemoShell } from "../renderers/DemoShell";
 
-const schema = {
+export const searchFiltersSchema = {
 	type: "object",
 	properties: {
 		query: { type: "string", title: "Search", description: "Keywords or phrases" },
@@ -26,7 +26,7 @@ const schema = {
 	},
 } as const;
 
-const layout = {
+export const searchFiltersLayout = {
 	type: "group",
 	id: "root",
 	children: [
@@ -58,6 +58,9 @@ const layout = {
 		},
 	],
 } as const;
+
+const schema = searchFiltersSchema;
+const layout = searchFiltersLayout;
 
 export function SearchFiltersDemo() {
 	return (

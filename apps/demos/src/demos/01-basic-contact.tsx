@@ -1,7 +1,7 @@
 import { DemoFormRoot } from "../renderers/DemoFormRoot";
 import { DemoShell } from "../renderers/DemoShell";
 
-const schema = {
+export const basicContactSchema = {
 	type: "object",
 	required: ["name", "email"],
 	properties: {
@@ -11,6 +11,8 @@ const schema = {
 		message: { type: "string", title: "Message", maxLength: 500, "x-formbar": { widget: "textarea" } },
 	},
 };
+
+const schema = basicContactSchema;
 
 export function BasicContactDemo() {
 	return (

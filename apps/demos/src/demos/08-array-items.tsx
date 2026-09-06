@@ -1,7 +1,7 @@
 import { DemoFormRoot } from "../renderers/DemoFormRoot";
 import { DemoShell } from "../renderers/DemoShell";
 
-const schema = {
+export const arrayItemsSchema = {
 	type: "object",
 	required: ["projectName"],
 	properties: {
@@ -71,6 +71,8 @@ const schema = {
 		isPublic: { type: "boolean", title: "Public Project", description: "Visible to all organization members" },
 	},
 };
+
+const schema = arrayItemsSchema;
 
 export function ArrayItemsDemo() {
 	return (

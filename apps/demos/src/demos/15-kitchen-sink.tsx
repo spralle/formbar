@@ -1,7 +1,7 @@
 import { DemoFormRoot } from "../renderers/DemoFormRoot";
 import { DemoShell } from "../renderers/DemoShell";
 
-const schema = {
+export const kitchenSinkSchema = {
 	type: "object",
 	required: ["textField", "emailField", "selectSmall", "selectLarge"],
 	properties: {
@@ -54,7 +54,7 @@ const schema = {
 	},
 } as const;
 
-const layout = {
+export const kitchenSinkLayout = {
 	type: "group",
 	id: "root",
 	children: [
@@ -107,7 +107,11 @@ const layout = {
 	],
 } as const;
 
-const data = { selectSmall: "legacy", withDefault: "Hello, ARB!" };
+export const kitchenSinkData = { selectSmall: "legacy", withDefault: "Hello, ARB!" };
+
+const schema = kitchenSinkSchema;
+const layout = kitchenSinkLayout;
+const data = kitchenSinkData;
 
 export function KitchenSinkDemo() {
 	return (
