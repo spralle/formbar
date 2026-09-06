@@ -101,4 +101,4 @@ If `enumOptions` is absent or only covers some values, `normalizeEnumOptions(met
 ## Dependencies
 
 - Depends on `@formbar/core` and `@scheman/core`.
-- Peer dependency: `zod >=3.0.0 || >=4.0.0`, marked optional. It is required only for Zod schema ingestion.
+- Peer dependency: `zod >=3.24.0 <4 || >=4.0.0 <5`, marked optional. It is required only for Zod schema ingestion.

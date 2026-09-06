@@ -81,6 +81,10 @@ function toIdPart(value: string): string {
 	return value.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-|-$/g, "") || "field";
 }
 
+export function createRadioOptionId(controlId: string, value: string, index: number): string {
+	return `${controlId}-option-${index}-${toIdPart(value)}`;
+}
+
 function createFieldA11y(
 	fieldPath: string,
 	generatedId: string,
@@ -234,7 +238,7 @@ function renderEnumRadioGroup(
 
 function renderEnumRadioOption(option: FormbarEnumOption, index: number, controlId: string): ReactNode {
 	const optionKey = getEnumOptionKey(index);
-	const optionId = `${controlId}-${optionKey}`;
+	const optionId = createRadioOptionId(controlId, String(option.value), index);
 	return (
 		<div key={optionKey} className="flex items-start gap-2">
 			<RadioGroupItem value={optionKey} id={optionId} disabled={option.disabled} />

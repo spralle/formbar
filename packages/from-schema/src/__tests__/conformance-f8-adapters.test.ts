@@ -2,11 +2,13 @@ import type { JsonSchema } from "@scheman/core";
 import { SchemaError, extractFromZod, ingestSchema, isStandardSchema } from "@scheman/core";
 import { describe, expect, test } from "vitest";
 import { createJsonSchemaValidator, isJsonSchema } from "../adapters/json-schema-validator.js";
+import { FromSchemaError } from "../errors.js";
+import { applyFormbarMetadata } from "../formbar-metadata.js";
 
 /**
  * F8: Schema adapters conformance fixtures.
  * Verifies: Standard Schema + function validators, JSON Schema adapter,
- * Zod metadata rules, x-formbar rejection.
+ * generic Zod metadata extraction, Formbar metadata policy.
  */
 
 describe("F8: JSON Schema adapter", () => {
@@ -73,42 +75,55 @@ describe("F8: Standard Schema detection", () => {
 });
 
 describe("F8: Zod metadata rules", () => {
-	test("x-formbar in Zod metadata throws SCHEMA_ZOD_TRANSFORM_FORBIDDEN", () => {
-		const fakeZod = {
-			_def: {
-				typeName: "ZodObject",
-				metadata: { "x-formbar": { widget: "input" } },
-				shape: () => ({}),
-			},
-		};
-		try {
-			extractFromZod(fakeZod);
-			expect(true).toBe(false); // should not reach
-		} catch (e) {
-			expect(e).toBeInstanceOf(SchemaError);
-			expect((e as SchemaError).code).toBe("SCHEMA_ZOD_TRANSFORM_FORBIDDEN");
-		}
+	test("generic extraction preserves x-formbar for downstream policy", () => {
+		const result = extractMockZodMetadata({ "x-formbar": { widget: "input" } });
+
+		expect(result.fields[0]?.metadata?.extensions).toEqual({ "x-formbar": { widget: "input" } });
 	});
 
-	test("Zod formbar metadata extracted correctly", () => {
-		const fakeZod = {
-			_def: {
-				typeName: "ZodObject",
-				shape: () => ({
-					name: {
-						_def: {
-							typeName: "ZodString",
-							metadata: { formbar: { widget: "text-input" } },
-						},
-					},
-				}),
-			},
-		};
-		const result = extractFromZod(fakeZod);
+	test("Formbar rejects x-formbar metadata at its boundary", () => {
+		const result = extractMockZodMetadata({ "x-formbar": { widget: "input" } });
+		let thrown: unknown;
+
+		try {
+			applyFormbarMetadata(result);
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toBeInstanceOf(FromSchemaError);
+		expect((thrown as FromSchemaError).code).toBe("FORMBAR_ZOD_XFORMBAR_FORBIDDEN");
+	});
+
+	test("generic extraction preserves namespaced formbar metadata", () => {
+		const options = [{ label: "Text", value: "text" }];
+		const result = extractMockZodMetadata({ formbar: { widget: "text-input", options } });
 		expect(result.fields).toHaveLength(1);
-		expect(result.fields[0].metadata).toEqual({ extensions: { widget: "text-input" } });
+		expect(result.fields[0]?.metadata?.extensions).toEqual({
+			formbar: { widget: "text-input", options },
+		});
+	});
+
+	test("Formbar elevates recognized widget and options metadata", () => {
+		const options = [{ label: "Text", value: "text" }];
+		const raw = extractMockZodMetadata({ formbar: { widget: "text-input", options } });
+		const result = applyFormbarMetadata(raw);
+
+		expect(result.fields[0]?.metadata).toMatchObject({ widget: "text-input", options });
+		expect(result.fields[0]?.metadata?.extensions).toBeUndefined();
 	});
 });
+
+function extractMockZodMetadata(metadata: Readonly<Record<string, unknown>>) {
+	return extractFromZod({
+		_def: {
+			typeName: "ZodObject",
+			shape: () => ({
+				name: { _def: { typeName: "ZodString", metadata } },
+			}),
+		},
+	});
+}
 
 describe("F8: Unsupported schema rejection", () => {
 	test("ingestSchema throws for unknown schema type", () => {
