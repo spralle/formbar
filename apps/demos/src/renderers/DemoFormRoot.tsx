@@ -123,6 +123,7 @@ function renderNode(node: LayoutNode, context: DemoRenderContext): React.ReactNo
 				node={node}
 				form={context.form}
 				fieldMap={context.fieldMap}
+				optionsByPath={context.optionsByPath}
 				fieldStates={context.fieldStates}
 				onChange={context.onChange}
 				itemSchema={context.arrayItemsMap.get(node.path)}

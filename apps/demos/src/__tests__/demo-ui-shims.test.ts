@@ -1,8 +1,10 @@
+import { createForm } from "@formbar/core";
+import type { LayoutNode, SchemaFieldInfo } from "@formbar/from-schema";
 import type { ChangeEvent, ReactElement, ReactNode } from "react";
 import { Children, createElement, isValidElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { getSchemaFormbarOptions } from "../renderers/ArrayRenderer";
+import { ArrayRenderer, getSchemaFormbarOptions } from "../renderers/ArrayRenderer";
 import { createRadioOptionId } from "../renderers/demo-control-ids";
 import { isDemoFieldDisabled, isDemoSchemaDisabled } from "../renderers/demo-field-disabled";
 import {
@@ -50,6 +52,76 @@ describe("demo control shims", () => {
 			{ value: true, title: "true" },
 			{ value: null, title: "null" },
 		]);
+	});
+
+	it("uses prepared array options with stable, associated row control ids", () => {
+		const form = createForm({ initialData: { rows: [{ role: "lead" }, { role: "lead" }] } });
+		const node: LayoutNode = {
+			type: "array",
+			id: "layout-rows",
+			path: "rows",
+			children: [{ type: "field", id: "layout-rows-role", path: "rows.role" }],
+		};
+		const fields = new Map<string, SchemaFieldInfo>([
+			["rows", { path: "rows", type: "array", required: false, metadata: { title: "Rows" } }],
+			[
+				"rows.role",
+				{
+					path: "rows.role",
+					type: "enum",
+					required: false,
+					metadata: { title: "Role", enum: ["lead"], options: [{ value: "lead", title: "Raw title" }] },
+				},
+			],
+		]);
+		const markup = renderToStaticMarkup(
+			createElement(ArrayRenderer, {
+				node,
+				form,
+				fieldMap: fields,
+				optionsByPath: new Map([["rows.role", [{ value: "lead", title: "Prepared title" }]]]),
+				onChange: vi.fn(),
+			}),
+		);
+		const controlIds = [...markup.matchAll(/<label[^>]*for="([^"]+)"[^>]*>Role<\/label>/g)].map((match) => match[1]);
+
+		expect(markup).toContain("Prepared title");
+		expect(markup).not.toContain("Raw title");
+		expect(controlIds).toHaveLength(2);
+		expect(new Set(controlIds)).toHaveLength(2);
+		for (const controlId of controlIds) {
+			expect(markup).toContain(`id="${controlId}"`);
+			expect(markup).toContain(`aria-labelledby="${controlId}-label"`);
+		}
+	});
+
+	it("associates primitive array selects with the visible array label", () => {
+		const form = createForm({ initialData: { tags: ["one", "one"] } });
+		const markup = renderToStaticMarkup(
+			createElement(ArrayRenderer, {
+				node: { type: "array", id: "layout-tags", path: "tags", children: [] },
+				form,
+				fieldMap: new Map<string, SchemaFieldInfo>([
+					["tags", { path: "tags", type: "array", required: false, metadata: { title: "Tags" } }],
+				]),
+				optionsByPath: new Map([["tags[]", [{ value: "one", title: "Prepared one" }]]]),
+				onChange: vi.fn(),
+				itemSchema: {
+					type: "string",
+					"x-formbar": { options: [{ value: "one", title: "Raw one" }], disabled: true },
+				},
+			}),
+		);
+		const labelId = markup.match(/<label[^>]*id="([^"]+)"[^>]*>Tags<\/label>/)?.[1];
+		const selectIds = [...markup.matchAll(/<select[^>]*id="([^"]+)"[^>]*aria-labelledby="([^"]+)"/g)];
+
+		expect(markup).toContain("Prepared one");
+		expect(markup).not.toContain("Raw one");
+		expect(labelId).toBeDefined();
+		expect(selectIds).toHaveLength(2);
+		expect(new Set(selectIds.map((match) => match[1]))).toHaveLength(2);
+		expect(selectIds.every((match) => match[2] === labelId)).toBe(true);
+		expect(markup.match(/<button[^>]*disabled=""[^>]*>×<\/button>/g)).toHaveLength(2);
 	});
 
 	it("retains a selected disabled value while guarding new UI selection", () => {
@@ -121,6 +193,22 @@ describe("demo control shims", () => {
 
 		expect(firstId).not.toBe(secondId);
 		expect(new Set([firstId, secondId])).toHaveLength(2);
+	});
+
+	it("keeps radio ids stable when resolved titles change", () => {
+		const a11y = {
+			controlId: "scope",
+			labelId: "scope-label",
+			describedBy: undefined,
+			invalid: false,
+		};
+		const renderIds = (titles: readonly string[]) => {
+			const options = titles.map((title, value) => ({ value, title }));
+			const markup = renderToStaticMarkup(renderFormbarOptionsControl(0, vi.fn(), options, false, false, a11y));
+			return [...markup.matchAll(/<input[^>]*id="([^"]+)"/g)].map((match) => match[1]);
+		};
+
+		expect(renderIds(["First", "Second"])).toEqual(renderIds(["Uno", "Dos"]));
 	});
 
 	it("renders native select options and bridges change callbacks", () => {

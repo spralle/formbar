@@ -8,7 +8,6 @@ import { FromSchemaError } from "./errors.js";
 const KNOWN_FORMBAR_KEYS = new Set([
 	"title",
 	"description",
-	"enum",
 	"default",
 	"minimum",
 	"maximum",

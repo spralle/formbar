@@ -36,6 +36,24 @@ describe("normalizeFormbarOptions", () => {
 		]);
 	});
 
+	test("preserves Object.is number semantics while indexing values", () => {
+		const result = normalizeFormbarOptions({
+			enum: [0, -0, Number.NaN],
+			options: [
+				{ value: -0, title: "Negative zero" },
+				{ value: 0, title: "Zero" },
+				{ value: Number.NaN, title: "Not a number" },
+			],
+		});
+
+		expect(result.options).toEqual([
+			{ value: 0, title: "Zero" },
+			{ value: -0, title: "Negative zero" },
+			{ value: Number.NaN, title: "Not a number" },
+		]);
+		expect(result.warnings).toEqual([]);
+	});
+
 	test("warns and falls back when a record only matches after coercion", () => {
 		const result = normalizeFormbarOptions(
 			{ enum: [1], options: [{ value: "1", title: "Wrong type" }] },
@@ -149,6 +167,17 @@ describe("normalizeFormbarOptions", () => {
 		expect(seen).toHaveLength(3);
 		expect(seen[0]).toEqual({ path: "choice", index: 0, value: "localized", literalTitle: "Literal ignored" });
 	});
+
+	test("handles large enum and option collections without nested matching scans", () => {
+		const enumValues = Array.from({ length: 10_000 }, (_, index) => index);
+		const options = enumValues.map((value) => ({ value, title: `Option ${value}` })).reverse();
+		const result = normalizeFormbarOptions({ enum: enumValues, options });
+
+		expect(result.options).toHaveLength(enumValues.length);
+		expect(result.options[0]).toEqual({ value: 0, title: "Option 0" });
+		expect(result.options.at(-1)).toEqual({ value: 9_999, title: "Option 9999" });
+		expect(result.warnings).toEqual([]);
+	});
 });
 
 describe("schema form options", () => {
@@ -180,6 +209,54 @@ describe("schema form options", () => {
 		]);
 		expect(jsonResult.warnings).toEqual([]);
 		expect(zodResult.warnings).toEqual([]);
+	});
+
+	test("keeps JSON Schema enum authoritative over conflicting x-formbar enum", () => {
+		const result = createSchemaForm({
+			type: "object",
+			required: ["state"],
+			properties: {
+				state: {
+					type: "string",
+					enum: ["first", "second", "third"],
+					"x-formbar": {
+						enum: ["third", "added", "first"],
+						options: [
+							{ value: "third", title: "Third" },
+							{ value: "added", title: "Added" },
+							{ value: "first", title: "First" },
+						],
+					},
+				},
+			},
+		});
+
+		expectCanonicalEnumAuthority(result);
+		const validator = result.validators[0];
+		expect(validator?.({ data: { state: "second" }, uiState: {}, stage: "submit" })).toEqual([]);
+		expect(validator?.({ data: { state: "added" }, uiState: {}, stage: "submit" })).toEqual([
+			expect.objectContaining({ path: { namespace: "data", segments: ["state"] } }),
+		]);
+	});
+
+	test("keeps Zod enum authoritative over conflicting formbar enum", () => {
+		const schema = z.object({
+			state: z.enum(["first", "second", "third"]).meta({
+				formbar: {
+					enum: ["third", "added", "first"],
+					options: [
+						{ value: "third", title: "Third" },
+						{ value: "added", title: "Added" },
+						{ value: "first", title: "First" },
+					],
+				},
+			}),
+		});
+		const result = createSchemaForm(schema);
+
+		expectCanonicalEnumAuthority(result);
+		expect(schema.safeParse({ state: "second" }).success).toBe(true);
+		expect(schema.safeParse({ state: "added" }).success).toBe(false);
 	});
 
 	test("surfaces warnings without turning choices into validation constraints", () => {
@@ -218,3 +295,15 @@ describe("schema form options", () => {
 		expect(result.warnings[0]?.code).toBe("FORMBAR_OPTION_UNMATCHED");
 	});
 });
+
+function expectCanonicalEnumAuthority(result: ReturnType<typeof createSchemaForm>): void {
+	const canonical = ["first", "second", "third"];
+	expect(result.fields[0]?.metadata?.enum).toEqual(canonical);
+	expect((result.fields[0]?.metadata?.extra as Record<string, unknown>)?.enum).toEqual(["third", "added", "first"]);
+	expect(result.optionsByPath.get("state")).toEqual([
+		{ value: "first", title: "First" },
+		{ value: "second", title: "second" },
+		{ value: "third", title: "Third" },
+	]);
+	expect(result.warnings.map((warning) => warning.code)).toEqual(["FORMBAR_OPTION_UNMATCHED"]);
+}

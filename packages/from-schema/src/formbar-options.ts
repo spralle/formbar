@@ -50,6 +50,11 @@ export interface FormbarOptionsResult {
 	readonly warnings: readonly FormbarOptionWarning[];
 }
 
+interface ParsedOptionRecords {
+	readonly ordered: readonly FormbarOptionRecord[];
+	readonly byValue: ReadonlyMap<string, FormbarOptionRecord>;
+}
+
 const OPTION_RECORD_KEYS = new Set(["value", "title", "disabled"]);
 
 export function normalizeFormbarOptions(
@@ -60,10 +65,10 @@ export function normalizeFormbarOptions(
 	const enumValues = Array.isArray(metadata?.enum) ? metadata.enum : undefined;
 	const warnings: FormbarOptionWarning[] = [];
 	const records = parseOptionRecords(metadata?.options, enumValues, path, warnings);
-	const values = enumValues ?? records.map((record) => record.value);
+	const values = enumValues ?? records.ordered.map((record) => record.value);
 
 	return {
-		options: values.map((value, index) => createOption(value, index, path, records, config.resolveTitle)),
+		options: values.map((value, index) => createOption(value, index, path, records.byValue, config.resolveTitle)),
 		warnings,
 	};
 }
@@ -73,30 +78,43 @@ function parseOptionRecords(
 	enumValues: readonly unknown[] | undefined,
 	path: string,
 	warnings: FormbarOptionWarning[],
-): FormbarOptionRecord[] {
-	if (input === undefined) return [];
+): ParsedOptionRecords {
+	const records: FormbarOptionRecord[] = [];
+	const byValue = new Map<string, FormbarOptionRecord>();
+	if (input === undefined) return { ordered: records, byValue };
 	if (!Array.isArray(input)) {
 		warnings.push(createWarning("FORMBAR_OPTIONS_NOT_ARRAY", path, -1, input));
-		return [];
+		return { ordered: records, byValue };
 	}
 
-	const records: FormbarOptionRecord[] = [];
+	const enumValueKeys = indexOptionValues(enumValues);
 	for (const [index, entry] of input.entries()) {
 		const record = parseOptionRecord(entry);
 		if (!record) {
 			warnings.push(createWarning("FORMBAR_OPTION_MALFORMED", path, index, getEntryValue(entry)));
 			continue;
 		}
-		if (records.some((existing) => optionValuesEqual(existing.value, record.value))) {
+		const valueKey = getOptionValueKey(record.value);
+		if (byValue.has(valueKey)) {
 			warnings.push(createWarning("FORMBAR_OPTION_DUPLICATE", path, index, record.value));
 			continue;
 		}
 		records.push(record);
-		if (enumValues && !enumValues.some((value) => optionValuesEqual(value, record.value))) {
+		byValue.set(valueKey, record);
+		if (enumValueKeys && !enumValueKeys.has(valueKey)) {
 			warnings.push(createWarning("FORMBAR_OPTION_UNMATCHED", path, index, record.value));
 		}
 	}
-	return records;
+	return { ordered: records, byValue };
+}
+
+function indexOptionValues(values: readonly unknown[] | undefined): ReadonlySet<string> | undefined {
+	if (!values) return undefined;
+	const indexed = new Set<string>();
+	for (const value of values) {
+		if (isOptionValue(value)) indexed.add(getOptionValueKey(value));
+	}
+	return indexed;
 }
 
 function parseOptionRecord(entry: unknown): FormbarOptionRecord | undefined {
@@ -116,12 +134,10 @@ function createOption(
 	value: unknown,
 	index: number,
 	path: string,
-	records: readonly FormbarOptionRecord[],
+	recordsByValue: ReadonlyMap<string, FormbarOptionRecord>,
 	resolveTitle: FormbarOptionTitleResolver | undefined,
 ): FormbarOption {
-	const record = isOptionValue(value)
-		? records.find((candidate) => optionValuesEqual(candidate.value, value))
-		: undefined;
+	const record = isOptionValue(value) ? recordsByValue.get(getOptionValueKey(value)) : undefined;
 	const resolvedTitle = resolveTitle?.({ path, index, value, literalTitle: record?.title });
 	const title = typeof resolvedTitle === "string" ? resolvedTitle : (record?.title ?? String(value));
 	return {
@@ -158,6 +174,10 @@ function getEntryValue(entry: unknown): unknown {
 	return isRecord(entry) && "value" in entry ? entry.value : entry;
 }
 
-function optionValuesEqual(left: unknown, right: unknown): boolean {
-	return isOptionValue(left) && isOptionValue(right) && Object.is(left, right);
+function getOptionValueKey(value: FormbarOptionValue): string {
+	if (value === null) return "null";
+	if (typeof value !== "number") return `${typeof value}:${String(value)}`;
+	if (Number.isNaN(value)) return "number:NaN";
+	if (Object.is(value, -0)) return "number:-0";
+	return `number:${String(value)}`;
 }

@@ -85,7 +85,7 @@ function renderOptionRadioGroup(
 
 function renderOptionRadio(option: FormbarOption, index: number, controlId: string, fieldDisabled: boolean): ReactNode {
 	const optionKey = getFormbarOptionKey(index);
-	const optionId = createRadioOptionId(controlId, option.title, index);
+	const optionId = createRadioOptionId(controlId, optionKey, index);
 	return (
 		<div key={optionKey} className="flex items-center gap-2">
 			<RadioGroupItem value={optionKey} id={optionId} disabled={fieldDisabled || option.disabled} />
@@ -113,6 +113,7 @@ export function FormbarOptionsSelect({
 	return (
 		<Select
 			id={a11y?.controlId}
+			aria-labelledby={a11y?.labelId}
 			aria-describedby={a11y?.describedBy}
 			aria-invalid={a11y?.invalid || undefined}
 			value={selectedKey}
