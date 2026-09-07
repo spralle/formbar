@@ -1,5 +1,19 @@
-import { describe, expect, test } from "vitest";
+import { createForm } from "@formbar/core";
+import { describe, expect, test, vi } from "vitest";
 import { getCoreFormOptions } from "../core-form-options.js";
+
+type TrapName = "getOwnPropertyDescriptor" | "ownKeys" | "getPrototypeOf";
+
+function createHostileOptions(trapName: TrapName) {
+	return new Proxy(
+		{ autoFocusOnError: false, initialData: { name: "Ada" } },
+		{
+			[trapName]: () => {
+				throw new Error(`${trapName} blocked`);
+			},
+		},
+	);
+}
 
 describe("getCoreFormOptions", () => {
 	test("returns the same reference when autoFocusOnError is absent or inherited", () => {
@@ -29,4 +43,27 @@ describe("getCoreFormOptions", () => {
 		expect(coreOptions[symbolKey]).toBe("also preserved");
 		expect(options.autoFocusOnError).toBe(false);
 	});
+
+	test.each<TrapName>(["getOwnPropertyDescriptor", "ownKeys", "getPrototypeOf"])(
+		"forwards the original options when the %s trap throws",
+		(trapName) => {
+			const options = createHostileOptions(trapName);
+
+			expect(getCoreFormOptions(options)).toBe(options);
+		},
+	);
+
+	test.each<TrapName>(["getOwnPropertyDescriptor", "ownKeys", "getPrototypeOf"])(
+		"does not block form creation when the %s trap throws",
+		(trapName) => {
+			const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+			const options = createHostileOptions(trapName);
+
+			try {
+				expect(() => createForm(getCoreFormOptions(options))).not.toThrow();
+			} finally {
+				warn.mockRestore();
+			}
+		},
+	);
 });
