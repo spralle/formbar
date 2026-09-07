@@ -50,6 +50,7 @@ function SourceTabs(props: Pick<SourceEditorProps, "active" | "sources" | "basel
 					}}
 					type="button"
 					role="tab"
+					id={`source-tab-${key}`}
 					aria-selected={props.active === key}
 					aria-controls={`source-panel-${key}`}
 					tabIndex={props.active === key ? 0 : -1}
@@ -67,30 +68,48 @@ function SourceTabs(props: Pick<SourceEditorProps, "active" | "sources" | "basel
 function SourcePanel(props: Pick<SourceEditorProps, "active" | "sources" | "errors" | "onChange" | "onApply">) {
 	const error = props.errors[props.active];
 	return (
-		<div id={`source-panel-${props.active}`} role="tabpanel" className="flex min-h-0 flex-1 flex-col p-3">
-			<label htmlFor={`source-${props.active}`} className="mb-2 text-xs font-semibold text-muted-foreground">
-				{SOURCE_LABELS[props.active]} — strict JSON
-			</label>
-			<textarea
-				id={`source-${props.active}`}
-				value={props.sources[props.active]}
-				onChange={(event) => props.onChange(event.target.value)}
-				onKeyDown={(event) => {
-					if (event.key !== "Enter" || (!event.ctrlKey && !event.metaKey)) return;
-					event.preventDefault();
-					props.onApply();
-				}}
-				spellCheck={false}
-				aria-invalid={Boolean(error)}
-				aria-describedby={error ? `source-error-${props.active}` : undefined}
-				className="min-h-80 flex-1 resize-y rounded-md border border-input bg-surface-inset p-3 font-mono text-xs text-code-foreground outline-none focus:ring-2 focus:ring-ring"
-			/>
-			{error && (
-				<p id={`source-error-${props.active}`} role="alert" tabIndex={-1} className="mt-2 text-xs text-destructive">
-					{error}
-				</p>
-			)}
-		</div>
+		<>
+			{SOURCE_KEYS.map((key) => {
+				const isActive = props.active === key;
+				return (
+					<div
+						key={key}
+						id={`source-panel-${key}`}
+						role="tabpanel"
+						aria-labelledby={`source-tab-${key}`}
+						hidden={!isActive}
+						className="flex min-h-0 flex-1 flex-col p-3"
+					>
+						{isActive && (
+							<>
+								<label htmlFor={`source-${key}`} className="mb-2 text-xs font-semibold text-muted-foreground">
+									{SOURCE_LABELS[key]} — strict JSON
+								</label>
+								<textarea
+									id={`source-${key}`}
+									value={props.sources[key]}
+									onChange={(event) => props.onChange(event.target.value)}
+									onKeyDown={(event) => {
+										if (event.key !== "Enter" || (!event.ctrlKey && !event.metaKey)) return;
+										event.preventDefault();
+										props.onApply();
+									}}
+									spellCheck={false}
+									aria-invalid={Boolean(error)}
+									aria-describedby={error ? `source-error-${key}` : undefined}
+									className="min-h-80 flex-1 resize-y rounded-md border border-input bg-surface-inset p-3 font-mono text-xs text-code-foreground outline-none focus:ring-2 focus:ring-ring"
+								/>
+								{error && (
+									<p id={`source-error-${key}`} role="alert" tabIndex={-1} className="mt-2 text-xs text-destructive">
+										{error}
+									</p>
+								)}
+							</>
+						)}
+					</div>
+				);
+			})}
+		</>
 	);
 }
 
