@@ -1,5 +1,6 @@
-import type { ValidatorFn } from "@formbar/core";
-import { describe, expect, test } from "vitest";
+import { type ValidatorFn, isStandardSchemaLike } from "@formbar/core";
+import { describe, expect, test, vi } from "vitest";
+import { isJsonSchema } from "../adapters/json-schema-validator.js";
 import { createSchemaForm } from "../create-schema-form.js";
 import type { LayoutNode } from "../layout/layout-types.js";
 
@@ -83,5 +84,37 @@ describe("createSchemaForm", () => {
 
 		const result = createSchemaForm(schema);
 		expect(result.validators.length).toBeGreaterThan(0);
+	});
+
+	test("prefers Standard Schema validation for a dual-shape schema", () => {
+		const validate = vi.fn((data: unknown) => ({
+			issues: [{ message: "Rejected by Standard Schema", path: ["state"] }],
+		}));
+		const schema = {
+			type: "object",
+			properties: { state: { type: "string", enum: ["enabled"] } },
+			"~standard": {
+				version: 1 as const,
+				vendor: "dual-shape",
+				validate,
+			},
+		};
+		const callerValidator: ValidatorFn = () => [];
+
+		expect(isStandardSchemaLike(schema)).toBe(true);
+		expect(isJsonSchema(schema)).toBe(true);
+		const result = createSchemaForm(schema, { validators: [callerValidator] });
+
+		expect(result.validators).toHaveLength(2);
+		expect(result.validators[1]).toBe(callerValidator);
+		const issues = result.validators[0]?.({ data: { state: "disabled" }, uiState: {} });
+		expect(validate).toHaveBeenCalledOnce();
+		expect(validate).toHaveBeenCalledWith({ state: "disabled" });
+		expect(issues).toHaveLength(1);
+		expect(issues?.[0]).toMatchObject({
+			code: "SCHEMA_VALIDATION",
+			path: { namespace: "data", segments: ["state"] },
+			source: { origin: "standard-schema", validatorId: "standard-schema:dual-shape" },
+		});
 	});
 });

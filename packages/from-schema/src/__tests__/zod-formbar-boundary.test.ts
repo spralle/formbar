@@ -1,9 +1,11 @@
+import { isStandardSchemaLike } from "@formbar/core";
 import { ingestSchema } from "@scheman/core";
 import { describe, expect, test } from "vitest";
 import { z as z3Current } from "zod3-current";
 import { z as z3Min } from "zod3-min";
 import { z as z4Current } from "zod4-current";
 import { z as z4Min } from "zod4-min";
+import { isJsonSchema } from "../adapters/json-schema-validator.js";
 import { createSchemaForm } from "../create-schema-form.js";
 
 const enumValues = ["enabled", "disabled"];
@@ -21,6 +23,23 @@ function expectFormbarBoundary(schema: unknown) {
 
 	expect(elevatedMetadata).toMatchObject({ ...formbarMetadata, enum: enumValues });
 	expect(elevatedMetadata?.extensions).toBeUndefined();
+}
+
+function expectZod4ValidationBoundary(schema: unknown, overlapsJsonSchema: boolean) {
+	expect(isStandardSchemaLike(schema)).toBe(true);
+	expect(isJsonSchema(schema)).toBe(overlapsJsonSchema);
+
+	const [validator] = createSchemaForm(schema).validators;
+	expect(validator).toBeDefined();
+	expect(validator?.({ data: { state: "enabled" }, uiState: {} })).toEqual([]);
+
+	const issues = validator?.({ data: { state: "other" }, uiState: {} });
+	expect(issues).toHaveLength(1);
+	expect(issues?.[0]).toMatchObject({
+		code: "SCHEMA_VALIDATION",
+		path: { namespace: "data", segments: ["state"] },
+		source: { origin: "standard-schema", validatorId: "standard-schema:zod" },
+	});
 }
 
 describe("Formbar metadata with supported Zod versions", () => {
@@ -50,6 +69,7 @@ describe("Formbar metadata with supported Zod versions", () => {
 		});
 
 		expectFormbarBoundary(schema);
+		expectZod4ValidationBoundary(schema, false);
 	});
 
 	test("supports the current stable Zod 4, 4.5.4", () => {
@@ -60,5 +80,6 @@ describe("Formbar metadata with supported Zod versions", () => {
 		});
 
 		expectFormbarBoundary(schema);
+		expectZod4ValidationBoundary(schema, true);
 	});
 });

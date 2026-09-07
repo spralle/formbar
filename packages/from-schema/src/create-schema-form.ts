@@ -64,10 +64,10 @@ export function createSchemaForm(schema: unknown, options?: CreateSchemaFormOpti
 	}
 
 	const validators: ValidatorFn[] = [];
-	if (isJsonSchema(schema)) {
-		validators.push(createJsonSchemaValidator(schema as JsonSchema));
-	} else if (isStandardSchemaLike(schema)) {
+	if (isStandardSchemaLike(schema)) {
 		validators.push(createStandardSchemaValidator(schema));
+	} else if (isJsonSchema(schema)) {
+		validators.push(createJsonSchemaValidator(schema as JsonSchema));
 	}
 	if (options?.validators) {
 		validators.push(...options.validators);
