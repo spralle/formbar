@@ -21,6 +21,7 @@ import { createStandardSchemaValidator, isStandardSchemaLike } from "./standard-
 import type { CreateFormOptions, FieldMetaEntry, FormState, ValidationIssue } from "./state.js";
 import { FormStore } from "./store.js";
 import { createSubmitHandler } from "./submit-handler.js";
+import { warnUnknownCreateFormOptionsAtRuntime } from "./unknown-options-warning.js";
 
 function pathEquals(a: CanonicalPath, b: CanonicalPath): boolean {
 	if (a.namespace !== b.namespace) return false;
@@ -63,6 +64,7 @@ function pathStartsWith(path: CanonicalPath, prefix: CanonicalPath): boolean {
 export function createForm<TData, TUi>(
 	options: CreateFormOptions<TData, TUi> = {} as CreateFormOptions<TData, TUi>,
 ): FormApi<TData, TUi> {
+	warnUnknownCreateFormOptionsAtRuntime(options);
 	let initialDataSnapshot: TData = structuredClone((options.initialData ?? {}) as TData);
 	const initialUiStateSnapshot: TUi = structuredClone((options.initialUiState ?? {}) as TUi);
 
@@ -107,10 +109,9 @@ export function createForm<TData, TUi>(
 
 	// Justified: pipeline treats data as opaque; variance cast is safe at this internal boundary
 	const pipelineStore = store as unknown as import("./store.js").FormStore<unknown, unknown>;
-	const pipelineOptions = {
-		...(options as unknown as CreateFormOptions<unknown, unknown>),
-		validators: normalizedValidators,
-	};
+	const pipelineOptions = Object.create(options as object, {
+		validators: { value: normalizedValidators, enumerable: true },
+	}) as CreateFormOptions<unknown, unknown>;
 
 	function updateState(updater: (draft: FormState<unknown, unknown>) => FormState<unknown, unknown>): void {
 		const tx = store.beginTransaction();

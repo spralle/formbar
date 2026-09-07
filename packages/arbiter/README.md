@@ -36,6 +36,9 @@ console.log(form.getState().uiState); // { showDiscount: true }
 form.dispose();
 ```
 
+Pass rules through `createArbiterPlugin` in the `plugins` option. The former top-level `arbiterRules` form option is
+not supported; non-production core builds warn with this migration path when they encounter it.
+
 ## When to use this package
 
 - Use `@formbar/arbiter` when visibility, requiredness, computed values, or other form behavior should be governed by Arbitre production rules.

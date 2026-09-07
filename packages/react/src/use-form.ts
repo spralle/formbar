@@ -2,6 +2,7 @@ import type { CreateFormOptions, FormApi, SubmitResult } from "@formbar/core";
 import { createForm } from "@formbar/core";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { focusFirstError } from "./a11y.js";
+import { getCoreFormOptions } from "./core-form-options.js";
 
 /** Options for useForm, extending core CreateFormOptions with React-specific behavior */
 export interface UseFormOptions<TData, TUi> extends CreateFormOptions<TData, TUi> {
@@ -37,7 +38,7 @@ export function useForm<TData, TUi>(options?: UseFormOptions<TData, TUi>): FormA
 	const disposeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	if (formRef.current === null) {
-		formRef.current = createForm<TData, TUi>(options);
+		formRef.current = createForm<TData, TUi>(getCoreFormOptions(options));
 	}
 
 	const form = formRef.current;
