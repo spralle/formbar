@@ -52,8 +52,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Preflight release artifacts
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: bun scripts/release/plan.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_PLAN: ${{ runner.temp }}/formbar-release-plan.json
+
       - name: Publish packages
         if: steps.changesets.outputs.hasChangesets == 'false'
         run: bunx changeset publish
         env:
           NPM_CONFIG_PROVENANCE: "true"
+
+      - name: Reconcile release artifacts
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: bun scripts/release/apply.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_PLAN: ${{ runner.temp }}/formbar-release-plan.json
