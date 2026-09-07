@@ -8,8 +8,8 @@ export const orderEntrySchema = {
 		orderNumber: { type: "string", title: "Order Number", description: "Auto-generated if left blank" },
 		customerName: { type: "string", title: "Customer Name" },
 		customerEmail: { type: "string", title: "Customer Email", format: "email" },
-		orderDate: { type: "string", title: "Order Date", description: "YYYY-MM-DD format" },
-		deliveryDate: { type: "string", title: "Requested Delivery Date" },
+		orderDate: { type: "string", title: "Order Date", description: "YYYY-MM-DD format", format: "date" },
+		deliveryDate: { type: "string", title: "Requested Delivery Date", format: "date" },
 		paymentMethod: {
 			type: "string",
 			title: "Payment Method",

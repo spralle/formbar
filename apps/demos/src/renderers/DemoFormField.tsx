@@ -134,6 +134,13 @@ function useDemoFieldValue(
 	return [value, handleChange];
 }
 
+function getStringInputType(field: SchemaFieldInfo, meta: FieldMeta): "date" | "email" | "url" | "text" {
+	if (field.type === "date" || meta.format === "date") return "date";
+	if (meta.format === "email") return "email";
+	if (meta.format === "uri") return "url";
+	return "text";
+}
+
 export function DemoFormField({ form, field, options: resolvedOptions, fieldState, onChange }: DemoFormFieldProps) {
 	const [value, handleChange] = useDemoFieldValue(form, field, onChange);
 	const generatedId = useId();
@@ -184,6 +191,7 @@ export function DemoFormField({ form, field, options: resolvedOptions, fieldStat
 }
 
 function renderStringControl(
+	field: SchemaFieldInfo,
 	value: unknown,
 	onChange: (v: unknown) => void,
 	meta: FieldMeta,
@@ -204,11 +212,10 @@ function renderStringControl(
 			/>
 		);
 	}
-	const inputType = meta.format === "email" ? "email" : meta.format === "uri" ? "url" : "text";
 	return (
 		<Input
 			{...getControlA11yProps(a11y)}
-			type={inputType}
+			type={getStringInputType(field, meta)}
 			value={(value as string) ?? ""}
 			onChange={(e) => onChange(e.target.value)}
 			className={cn(errorClass)}
@@ -293,8 +300,8 @@ function renderControl(
 	if (field.type === "boolean") {
 		return renderBooleanControl(value, onChange, meta.disabled, a11y);
 	}
-	if (field.type === "string") {
-		return renderStringControl(value, onChange, meta, hasError, a11y);
+	if (field.type === "string" || field.type === "date") {
+		return renderStringControl(field, value, onChange, meta, hasError, a11y);
 	}
 	if (field.type === "number" || field.type === "integer") {
 		return renderNumberControl(field, value, onChange, meta, hasError, a11y);
