@@ -1,5 +1,5 @@
 import { createArbiterPlugin } from "@formbar/arbiter";
-import type { FormApi, FormState } from "@formbar/core";
+import type { FormState } from "@formbar/core";
 import type { FormbarOption, LayoutNode, SchemaFieldInfo } from "@formbar/from-schema";
 import { isSectionNode } from "@formbar/from-schema";
 import { type ResolvedFieldState, useSchemaForm } from "@formbar/react-schema";
@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui";
 import { ArrayRenderer } from "./ArrayRenderer";
 import { DemoFormField } from "./DemoFormField";
+import type { DemoFormApi } from "./demo-form-api";
 
 const COLUMN_CLASSES: Record<number, string> = {
 	1: "grid grid-cols-1 gap-4",
@@ -137,7 +138,7 @@ function DemoFormCards({ formData, renderContext, layout }: DemoFormCardsProps) 
 }
 
 interface DemoRenderContext {
-	readonly form: FormApi;
+	readonly form: DemoFormApi;
 	readonly fieldMap: Map<string, SchemaFieldInfo>;
 	readonly optionsByPath: ReadonlyMap<string, readonly FormbarOption[]>;
 	readonly fieldStates: ReadonlyMap<string, ResolvedFieldState>;

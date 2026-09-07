@@ -121,7 +121,9 @@ describe("demo control shims", () => {
 			createElement(ArrayRenderer, {
 				node: { type: "array", id: "layout-tags", path: "tags", children: [] },
 				form,
-				fieldMap: new Map([["tags", { path: "tags", type: "array", required: false, metadata: { title: "Tags" } }]]),
+				fieldMap: new Map<string, SchemaFieldInfo>([
+					["tags", { path: "tags", type: "array", required: false, metadata: { title: "Tags" } }],
+				]),
 				optionsByPath: new Map(),
 				onChange: vi.fn(),
 				itemSchema: { type: "string", "x-formbar": { options: [{ value: "one", title: "Raw one" }] } },
@@ -243,7 +245,12 @@ describe("demo control shims", () => {
 		expect(isDemoFieldDisabled(field, enabledState)).toBe(false);
 		expect(isDemoFieldDisabled(field, { ...enabledState, readOnly: true })).toBe(true);
 		expect(isDemoFieldDisabled(field, { ...enabledState, disabled: true })).toBe(true);
-		expect(isDemoFieldDisabled({ ...field, metadata: { disabled: true } }, enabledState)).toBe(true);
+		expect(
+			isDemoFieldDisabled(
+				{ ...field, metadata: { disabled: true } as SchemaFieldInfo["metadata"] & { disabled: boolean } },
+				enabledState,
+			),
+		).toBe(true);
 		expect(isDemoSchemaDisabled({ readOnly: true })).toBe(true);
 		expect(isDemoSchemaDisabled({ "x-formbar": { disabled: true } })).toBe(true);
 	});
@@ -291,9 +298,9 @@ describe("demo control shims", () => {
 		expect(select.type).toBe("select");
 		expect(props.className).toContain("trigger");
 		expect(options).toHaveLength(2);
-		expect(options.every((option) => isValidElement(option) && ["option", SelectItem].includes(option.type))).toBe(
-			true,
-		);
+		expect(
+			options.every((option) => isValidElement(option) && (option.type === "option" || option.type === SelectItem)),
+		).toBe(true);
 		const markup = renderToStaticMarkup(select);
 		expect(markup).not.toMatch(/<(div|span)/);
 

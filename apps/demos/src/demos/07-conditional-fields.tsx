@@ -1,9 +1,9 @@
-import type { FormApi } from "@formbar/core";
 import type { FormbarOption, SchemaFieldInfo } from "@formbar/from-schema";
 import { useSchemaForm } from "@formbar/react-schema";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DemoFormField } from "../renderers/DemoFormField";
 import { DemoShell } from "../renderers/DemoShell";
+import type { DemoFormApi } from "../renderers/demo-form-api";
 import { Card, CardContent, CardHeader, CardTitle, cn } from "../ui";
 
 const schema = {
@@ -50,7 +50,7 @@ function getSectionTitle(status: string): string {
 }
 
 interface ConditionalFormProps {
-	readonly form: FormApi;
+	readonly form: DemoFormApi;
 	readonly fieldMap: Map<string, SchemaFieldInfo>;
 	readonly optionsByPath: ReadonlyMap<string, readonly FormbarOption[]>;
 	readonly onChange: (path: string, value: unknown) => void;

@@ -32,7 +32,12 @@ export function CardContent({ children, className, ...props }: HTMLAttributes<HT
 	return createElement("div", { className: cn("p-4 pt-0", className), ...props }, children);
 }
 
-export function Badge({ children, className, ...props }: HTMLAttributes<HTMLSpanElement>) {
+export function Badge({
+	children,
+	className,
+	variant: _variant,
+	...props
+}: HTMLAttributes<HTMLSpanElement> & { variant?: string }) {
 	return createElement(
 		"span",
 		{
@@ -310,7 +315,12 @@ export function Accordion({ children, className, defaultValue, value, ...props }
 	);
 }
 
-export function AccordionItem({ children, className, value, ...props }: DetailsHTMLAttributes<HTMLDetailsElement>) {
+export function AccordionItem({
+	children,
+	className,
+	value,
+	...props
+}: DetailsHTMLAttributes<HTMLDetailsElement> & { value: string }) {
 	const { defaultOpenValues } = useContext(AccordionContext);
 	const itemValue = typeof value === "string" ? value : undefined;
 	return createElement(

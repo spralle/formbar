@@ -1,6 +1,6 @@
-import type { FormApi } from "@formbar/core";
 import type { LayoutNode } from "@formbar/from-schema";
 import { useCallback, useState } from "react";
+import type { DemoFormApi } from "./demo-form-api";
 
 let nextArrayItemKey = 0;
 
@@ -11,7 +11,7 @@ function createArrayItemKey(): string {
 
 export function useArrayItems(
 	node: LayoutNode,
-	form: FormApi,
+	form: DemoFormApi,
 	onChange: (path: string, value: unknown) => void,
 	itemSchema: Record<string, unknown> | undefined,
 ) {

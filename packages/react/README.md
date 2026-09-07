@@ -54,3 +54,6 @@ export function ContactForm() {
 
 - Depends on `@formbar/core`.
 - Peer dependency: `react >=18.0.0`.
+
+`autoFocusOnError` is handled by `useForm` and is not forwarded to core. Other options are forwarded unchanged, so
+core's development-only unknown-option diagnostics also apply to `useForm` without duplicate React-option warnings.

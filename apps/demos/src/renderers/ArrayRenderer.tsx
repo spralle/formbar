@@ -1,4 +1,3 @@
-import type { FormApi } from "@formbar/core";
 import type { FormbarOption, LayoutNode, SchemaFieldInfo } from "@formbar/from-schema";
 import type { ResolvedFieldState } from "@formbar/react-schema";
 import React, { type ReactNode, useId, useMemo } from "react";
@@ -7,11 +6,12 @@ import { type ArrayFieldEntry, getArrayFieldEntries, toRenderableOptions } from 
 import { useArrayItems } from "./array-renderer-state";
 import { toIdPart } from "./demo-control-ids";
 import { isDemoFieldDisabled, isDemoSchemaDisabled } from "./demo-field-disabled";
+import type { DemoFormApi } from "./demo-form-api";
 import { FormbarOptionsSelect } from "./formbar-options-control";
 
 export interface ArrayRendererProps {
 	readonly node: LayoutNode;
-	readonly form: FormApi;
+	readonly form: DemoFormApi;
 	readonly fieldMap: Map<string, SchemaFieldInfo>;
 	readonly optionsByPath: ReadonlyMap<string, readonly FormbarOption[]>;
 	readonly fieldStates?: ReadonlyMap<string, ResolvedFieldState>;

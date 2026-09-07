@@ -1,10 +1,10 @@
-import type { FormApi } from "@formbar/core";
 import type { FormbarOption, LayoutNode, SchemaFieldInfo } from "@formbar/from-schema";
 import { isSectionNode } from "@formbar/from-schema";
 import { useSchemaForm } from "@formbar/react-schema";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DemoFormField } from "../renderers/DemoFormField";
 import { DemoShell } from "../renderers/DemoShell";
+import type { DemoFormApi } from "../renderers/demo-form-api";
 import {
 	Accordion,
 	AccordionContent,
@@ -158,7 +158,7 @@ const RENDERER_CODE = `function renderCustomNode(node, form, fieldMap, optionsBy
 }`;
 
 interface CustomLayoutRenderContext {
-	readonly form: FormApi;
+	readonly form: DemoFormApi;
 	readonly fieldMap: Map<string, SchemaFieldInfo>;
 	readonly optionsByPath: ReadonlyMap<string, readonly FormbarOption[]>;
 	readonly onChange: (path: string, value: unknown) => void;

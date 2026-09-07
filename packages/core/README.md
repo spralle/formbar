@@ -43,3 +43,9 @@ form.dispose();
 ## Dependencies
 
 No peer dependencies. The package is framework-agnostic and marked side-effect free.
+
+## Unknown options
+
+Outside production, `createForm` warns once per call about unknown own enumerable option keys. Warnings list only
+option names, never values. The removed `arbiterRules` option receives a migration warning directing callers to
+`@formbar/arbiter`. Warnings are suppressed when `process.env.NODE_ENV` is unavailable or unusable.
