@@ -95,7 +95,7 @@ function preflight(values: Record<SourceKey, unknown>, errors: SourceErrors): vo
 		});
 		plugin.onDispose?.();
 	} catch (error) {
-		errors.rules = `Rules could not create an Arbitre session: ${error instanceof Error ? error.message : String(error)}`;
+		errors.rules = `Rules could not create an Arbiter session: ${error instanceof Error ? error.message : String(error)}`;
 	}
 }
 

@@ -28,6 +28,15 @@ describe("playground document", () => {
 		if (!result.ok) expect(result.errors.rules).toBeTruthy();
 	});
 
+	it("names Arbiter correctly when malformed rules fail preflight", () => {
+		const result = parseDocument({ ...validSources(), rules: '[{"name":"broken","when":{},"then":null}]' });
+		expect(result.ok).toBe(false);
+		if (!result.ok) {
+			expect(result.errors.rules).toContain("Rules could not create an Arbiter session");
+			expect(result.errors.rules).not.toContain("Arbitre");
+		}
+	});
+
 	it("rejects custom layout nodes and oversized sources", () => {
 		const custom = parseDocument({ ...validSources(), layout: '{"type":"tabs","id":"root"}' });
 		expect(custom.ok).toBe(false);
