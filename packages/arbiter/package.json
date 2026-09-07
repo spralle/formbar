@@ -24,7 +24,7 @@
 	"scripts": {
 		"build": "tsc --noEmit",
 		"build:dist": "tsup",
-		"test": "vitest run"
+		"test": "vitest run --root ../.. packages/arbiter/src/__tests__"
 	},
 	"dependencies": {
 		"@formbar/core": "^0.3.0"

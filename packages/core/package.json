@@ -39,7 +39,7 @@
 	"scripts": {
 		"build": "tsc --noEmit",
 		"build:dist": "tsup",
-		"test": "vitest run"
+		"test": "vitest run --root ../.. packages/core/src/__tests__"
 	},
 	"devDependencies": {
 		"@formbar/from-schema": "^0.3.0"
