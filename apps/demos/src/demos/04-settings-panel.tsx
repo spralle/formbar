@@ -19,7 +19,7 @@ export const settingsPanelSchema = {
 		language: { type: "string", title: "Language", enum: ["English", "Spanish", "French", "German", "Japanese"] },
 		timezone: {
 			type: "string",
-			title: "Timezone",
+			title: "Time Zone",
 			enum: ["UTC-8 (PST)", "UTC-5 (EST)", "UTC+0 (GMT)", "UTC+1 (CET)", "UTC+9 (JST)", "UTC+10 (AEST)"],
 		},
 		autoSave: { type: "boolean", title: "Auto-Save", description: "Automatically save changes" },
