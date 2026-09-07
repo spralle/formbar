@@ -1,14 +1,17 @@
 import { spawnSync } from "node:child_process";
 import { GithubApi } from "./github";
 import type { Candidate, NpmVersion, ReleaseReader, ReleaseWriter } from "./types";
+import { expectObject, optionalString, readJsonResponse } from "./validation";
 
 export async function npmVersion(name: string, version: string): Promise<NpmVersion> {
 	const encoded = encodeURIComponent(name);
 	const response = await fetch(`https://registry.npmjs.org/${encoded}/${encodeURIComponent(version)}`);
 	if (response.status === 404) return { exists: false };
 	if (!response.ok) throw new Error(`npm lookup failed for ${name}@${version} (${response.status})`);
-	const metadata = (await response.json()) as { gitHead?: string };
-	return metadata.gitHead ? { exists: true, gitHead: metadata.gitHead } : { exists: true };
+	const context = `npm metadata for ${name}@${version}`;
+	const metadata = expectObject(await readJsonResponse(response, context), context);
+	const gitHead = optionalString(metadata.gitHead, `npm gitHead for ${name}@${version}`);
+	return gitHead ? { exists: true, gitHead } : { exists: true };
 }
 
 function git(args: string[]): void {

@@ -33,6 +33,22 @@ describe("release application", () => {
 		expect(services.events).toEqual([]);
 	});
 
+	it("does zero writes when a later candidate has a draft-reserved release tag", async () => {
+		const second = { ...candidate, name: "@scope/second", tag: "@scope/second@1.2.3" };
+		const services = new FakeServices();
+		services.npm = { exists: true, gitHead: sha };
+		services.releases.set(second.tag, {
+			kind: "draft",
+			name: "@scope/second 1.2.3",
+			body: second.notes,
+			prerelease: false,
+		});
+		await expect(applyPlan({ ...plan, candidates: [candidate, second] }, services, services)).rejects.toThrow(
+			"reserved by a draft",
+		);
+		expect(services.events).toEqual([]);
+	});
+
 	it("recovers idempotently after tags or releases already exist", async () => {
 		const services = new FakeServices();
 		services.npm = { exists: true, gitHead: sha };

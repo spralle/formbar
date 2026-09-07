@@ -5,6 +5,7 @@ import { LiveServices } from "./adapters";
 import { isPrerelease } from "./changelog";
 import { preflightAll } from "./preflight";
 import type { Candidate, ReleasePlan, ReleaseReader, ReleaseWriter } from "./types";
+import { parseReleasePlan } from "./validation";
 
 const delay = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -83,7 +84,13 @@ export async function applyPlan(
 async function main(): Promise<void> {
 	const path = process.env.RELEASE_PLAN;
 	if (!path) throw new Error("RELEASE_PLAN is required");
-	const plan = JSON.parse(await readFile(path, "utf8")) as ReleasePlan;
+	let decoded: unknown;
+	try {
+		decoded = JSON.parse(await readFile(path, "utf8"));
+	} catch {
+		throw new Error("Release plan is not valid JSON");
+	}
+	const plan = parseReleasePlan(decoded);
 	const repository = process.env.GITHUB_REPOSITORY ?? "";
 	const releaseCommit = process.env.GITHUB_SHA ?? "";
 	validatePlan(plan, repository, releaseCommit);

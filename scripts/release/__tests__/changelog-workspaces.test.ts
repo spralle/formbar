@@ -45,4 +45,9 @@ describe("release metadata", () => {
 		const root = await fixture({ prohibited: { name: "@scope/prohibited", version: "0.2.1" } });
 		await expect(discoverWorkspaces(root)).rejects.toThrow("Refusing prohibited historical version");
 	});
+
+	it("rejects malformed workspace manifest fields", async () => {
+		const root = await fixture({ malformed: { name: "@scope/malformed", version: "1.0.0-beta.1", private: "no" } });
+		await expect(discoverWorkspaces(root)).rejects.toThrow("private must be boolean");
+	});
 });

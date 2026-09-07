@@ -17,6 +17,7 @@ function validateTag(candidate: Candidate, tag: TagState): "create" | "none" {
 
 function validateRelease(candidate: Candidate, release: GithubReleaseState): "create" | "none" {
 	if (release.kind === "absent") return "create";
+	if (release.kind === "draft") throw new Error(`${candidate.tag} is reserved by a draft GitHub Release`);
 	if (release.name !== `${candidate.name} ${candidate.version}`)
 		throw new Error(`${candidate.tag} release has a conflicting name`);
 	if (release.prerelease !== candidate.prerelease)

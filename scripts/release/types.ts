@@ -32,6 +32,7 @@ export type TagState =
 
 export type GithubReleaseState =
 	| { kind: "absent" }
+	| { kind: "draft"; name: string; body: string; prerelease: boolean }
 	| { kind: "present"; name: string; body: string; prerelease: boolean };
 
 export interface ReleaseReader {

@@ -2,6 +2,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { extractVersionNotes, isPrerelease } from "./changelog";
 import type { WorkspaceRelease } from "./types";
+import { expectObject, optionalString, optionalStringArray } from "./validation";
 
 interface Manifest {
 	name?: string;
@@ -12,7 +13,26 @@ interface Manifest {
 }
 
 async function readJson(path: string): Promise<Manifest> {
-	return JSON.parse(await readFile(path, "utf8")) as Manifest;
+	let decoded: unknown;
+	try {
+		decoded = JSON.parse(await readFile(path, "utf8"));
+	} catch {
+		throw new Error(`${path} is not valid JSON`);
+	}
+	const value = expectObject(decoded, path);
+	if (value.private !== undefined && typeof value.private !== "boolean")
+		throw new Error(`${path} private must be boolean`);
+	const name = optionalString(value.name, `${path} name`);
+	const version = optionalString(value.version, `${path} version`);
+	const workspaces = optionalStringArray(value.workspaces, `${path} workspaces`);
+	const ignore = optionalStringArray(value.ignore, `${path} ignore`);
+	return {
+		...(name === undefined ? {} : { name }),
+		...(version === undefined ? {} : { version }),
+		...(value.private === undefined ? {} : { private: value.private as boolean }),
+		...(workspaces === undefined ? {} : { workspaces }),
+		...(ignore === undefined ? {} : { ignore }),
+	};
 }
 
 async function expandPattern(root: string, pattern: string): Promise<string[]> {
@@ -35,7 +55,8 @@ function validateManifest(
 
 export async function discoverWorkspaces(root: string): Promise<WorkspaceRelease[]> {
 	const rootManifest = await readJson(join(root, "package.json"));
-	const patterns = rootManifest.workspaces ?? [];
+	const patterns = rootManifest.workspaces;
+	if (!patterns || patterns.length === 0) throw new Error("Root package.json must define workspaces");
 	const ignored = new Set((await readJson(join(root, ".changeset/config.json"))).ignore ?? []);
 	const directories = (await Promise.all(patterns.map((pattern) => expandPattern(root, pattern)))).flat();
 	const releases: WorkspaceRelease[] = [];
