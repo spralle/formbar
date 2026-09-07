@@ -1,9 +1,9 @@
-import type { FormApi } from "@formbar/core";
 import type { FormbarOption, SchemaFieldInfo } from "@formbar/from-schema";
 import { useSchemaForm } from "@formbar/react-schema";
 import { useCallback, useEffect, useState } from "react";
 import { DemoFormField } from "../renderers/DemoFormField";
 import { DemoShell } from "../renderers/DemoShell";
+import type { DemoFormApi } from "../renderers/demo-form-api";
 import { Card, CardContent, CardHeader, CardTitle, Checkbox, Label, Progress, Slider, cn } from "../ui";
 
 const schema = {
@@ -166,7 +166,7 @@ function ProgressField({ value, onChange }: { value: number; onChange: (v: numbe
 }
 
 interface CustomFieldProps {
-	readonly form: FormApi;
+	readonly form: DemoFormApi;
 	readonly field: SchemaFieldInfo;
 	readonly preparedOptions: readonly FormbarOption[] | undefined;
 	readonly onChange: (path: string, value: unknown) => void;
@@ -217,7 +217,7 @@ function CustomField({ form, field, preparedOptions, onChange }: CustomFieldProp
 }
 
 interface CustomRenderersViewProps {
-	readonly form: FormApi;
+	readonly form: DemoFormApi;
 	readonly fields: readonly SchemaFieldInfo[];
 	readonly optionsByPath: ReadonlyMap<string, readonly FormbarOption[]>;
 	readonly formData: Record<string, unknown>;

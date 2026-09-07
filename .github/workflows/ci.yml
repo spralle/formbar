@@ -39,5 +39,8 @@ jobs:
           bun run --filter @formbar/arbiter build:dist
           bun run --filter @formbar/react-schema build:dist
 
+      - name: Typecheck demos
+        run: bun run --filter @formbar/demos typecheck
+
       - name: Build demos
         run: bun run --filter @formbar/demos build

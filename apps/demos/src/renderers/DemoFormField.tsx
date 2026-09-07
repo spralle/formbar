@@ -1,10 +1,10 @@
-import type { FormApi } from "@formbar/core";
 import type { FormbarOption, SchemaFieldInfo } from "@formbar/from-schema";
 import type { ResolvedFieldState } from "@formbar/react-schema";
 import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
 import { Badge, Input, Label, Slider, Switch, Textarea, cn } from "../ui";
 import { toIdPart } from "./demo-control-ids";
 import { isDemoFieldDisabled } from "./demo-field-disabled";
+import type { DemoFormApi } from "./demo-form-api";
 import { renderFormbarOptionsControl } from "./formbar-options-control";
 
 interface FieldMeta {
@@ -43,7 +43,7 @@ function extractFieldMeta(
 }
 
 interface DemoFormFieldProps {
-	readonly form: FormApi;
+	readonly form: DemoFormApi;
 	readonly field: SchemaFieldInfo;
 	readonly options?: readonly FormbarOption[];
 	readonly fieldState?: ResolvedFieldState;
@@ -109,7 +109,7 @@ function getControlA11yProps(a11y: FieldA11y) {
 }
 
 function useDemoFieldValue(
-	form: FormApi,
+	form: DemoFormApi,
 	field: SchemaFieldInfo,
 	onChange: (path: string, value: unknown) => void,
 ): readonly [unknown, (newValue: unknown) => void] {
