@@ -33,11 +33,8 @@ jobs:
 
       - name: Build packages
         run: |
-          bun run --filter @formbar/core build:dist
-          bun run --filter @formbar/from-schema build:dist
-          bun run --filter @formbar/react build:dist
-          bun run --filter @formbar/arbiter build:dist
-          bun run --filter @formbar/react-schema build:dist
+          rm -rf packages/*/dist
+          bun run build
 
       - name: Typecheck demos
         run: bun run --filter @formbar/demos typecheck

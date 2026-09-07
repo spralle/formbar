@@ -31,12 +31,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build packages
-        run: |
-          bun run --filter @formbar/core build:dist
-          bun run --filter @formbar/from-schema build:dist
-          bun run --filter @formbar/react build:dist
-          bun run --filter @formbar/arbiter build:dist
-          bun run --filter @formbar/react-schema build:dist
+        run: bun run build
 
       - name: Build demo
         env:
